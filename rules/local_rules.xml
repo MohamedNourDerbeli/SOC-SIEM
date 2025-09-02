@@ -1,0 +1,69 @@
+<group name="local,windows,falsepositives">
+
+  <!-- Ignore EventID 7: Legit image loads -->
+  <rule id="200001" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="data_win_eventdata_image" type="pcre2">(?i)MicrosoftEdgeUpdate\.exe</field>
+    <description>Ignore legit Edge Update loading taskschd.dll</description>
+    <group>windows,sysmon,eventid7,falsepositive</group>
+  </rule>
+
+  <rule id="200002" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="data_win_eventdata_image" type="pcre2">(?i)OneDriveSetup\.exe</field>
+    <description>Ignore OneDrive installer image loads</description>
+    <group>windows,sysmon,eventid7,falsepositive</group>
+  </rule>
+
+  <!-- Ignore EventID 10: Process Access by legit processes -->
+  <rule id="100101" level="0" overwrite="yes">
+    <if_sid>109102</if_sid>
+    <field name="data_win_eventdata_sourceImage" type="pcre2">(?i)C:\\\\Program Files\\\\ReasonLabs\\\\VPN\\\\rsVPNSvc\.exe</field>
+    <description>Ignore Sysmon Event 10 ProcessAccess by ReasonLabs VPN</description>
+    <group>windows,sysmon,eventid10,falsepositive</group>
+  </rule>
+
+
+
+  <!-- Ignore Sysmon EventID 13: Registry modification by svchost.exe -->
+  <rule id="200008" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="data_win_system_eventID" type="pcre2">13</field>
+    <field name="data_win_eventdata_image" type="pcre2">(?i)C:\\\\windows\\\\system32\\\\svchost\.exe</field>
+    <description>Ignore Registry SetValue by svchost.exe</description>
+    <group>windows,sysmon,sysmon_event_13,falsepositive</group>
+  </rule>
+
+  <!-- Ignore MITRE T1053.005: Scheduled Tasks by legit updaters -->
+  <rule id="200005" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="rule_mitre_id" type="pcre2">T1053\.005</field>
+    <field name="data_win_eventdata_image" type="pcre2">(?i)MicrosoftEdgeUpdate\.exe</field>
+    <description>Ignore scheduled task created by Edge updater</description>
+    <group>windows,sysmon,scheduled_tasks,falsepositive</group>
+  </rule>
+
+  <rule id="200006" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="rule_mitre_id" type="pcre2">T1053\.005</field>
+    <field name="data_win_eventdata_image" type="pcre2">(?i)OneDriveSetup\.exe</field>
+    <description>Ignore scheduled task created by OneDrive installer</description>
+    <group>windows,sysmon,scheduled_tasks,falsepositive</group>
+  </rule>
+
+  <!-- Ignore PowerShell legit scripts -->
+  <rule id="200007" level="0">
+    <decoded_as>json</decoded_as>
+    <field name="data_win_eventdata_image" type="pcre2">(?i)C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1\.0\\\\powershell\.exe</field>
+    <description>Ignore PowerShell scripts executed by trusted processes</description>
+    <group>windows,sysmon,powershell,falsepositive</group>
+  </rule>
+  <rule id="100102" level="0" overwrite="yes">
+    <if_sid>109102</if_sid>
+    <field name="data_win_eventdata_sourceImage" type="pcre2">(?i)C:\\\\Program Files\\\\ReasonLabs\\\\DNS\\\\rsDNSSvc\.exe</field>
+    <description>Ignore Sysmon Event 10 ProcessAccess by ReasonLabs DNS</description>
+    <group>windows,sysmon,eventid10,falsepositive</group> 
+  </rule>
+
+
+</group>
