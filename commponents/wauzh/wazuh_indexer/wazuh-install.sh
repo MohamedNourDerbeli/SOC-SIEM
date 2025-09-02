@@ -57,14 +57,24 @@ cp ./opensearch.yml /etc/wazuh-indexer/opensearch.yml
 chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.yml
 chmod 640 /etc/wazuh-indexer/opensearch.yml
 
+
+# --- Ensure LimitMEMLOCK is set ---
+echo "[+] Ensuring LimitMEMLOCK=infinity in systemd service..."
+SERVICE_FILE="/usr/lib/systemd/system/wazuh-indexer.service"
+
+if ! grep -q "^LimitMEMLOCK=infinity" "$SERVICE_FILE"; then
+    sed -i '/^\[Service\]/a LimitMEMLOCK=infinity' "$SERVICE_FILE"
+fi
+
+
 # --- Enable and start service ---
 echo "[+] Enabling and starting Wazuh Indexer..."
 systemctl daemon-reload
 systemctl enable wazuh-indexer
 systemctl restart wazuh-indexer
 
+
 # --- Initialize security ---
-echo "[+] Initializing security..."
 /usr/share/wazuh-indexer/bin/indexer-security-init.sh
 
 # --- Test connectivity ---
