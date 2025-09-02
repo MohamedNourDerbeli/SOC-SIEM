@@ -56,7 +56,7 @@ export WAZUH_DASHBOARD_IP WAZUH_DASHBOARD_HOSTNAME
 VARS_TO_SUBSTITUTE='${WAZUH_INDEXER_IP} ${WAZUH_INDEXER_HOSTNAME} ${GRAYLOG_SERVER_IP} ${GRAYLOG_SERVER_HOSTNAME} ${WAZUH_DASHBOARD_IP} ${WAZUH_DASHBOARD_HOSTNAME}'
 envsubst "$VARS_TO_SUBSTITUTE" < "$TEMPLATE_FILE" > "$OUTPUT_FILE"
 
-bash ./wazuh-certs-tool.sh -A
+bash ./certs.sh -A
 
 tar -cvf ./wazuh-certificates.tar -C ./wazuh-certificates/ .
 
