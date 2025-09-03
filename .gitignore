@@ -1,2 +1,3 @@
-config.yml
+generated_config.yml
 wazuh-certificates*
+test

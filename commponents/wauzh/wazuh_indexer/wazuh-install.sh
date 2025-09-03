@@ -71,7 +71,7 @@ fi
 echo "[+] Enabling and starting Wazuh Indexer..."
 systemctl daemon-reload
 systemctl enable wazuh-indexer
-systemctl restart wazuh-indexer
+systemctl start wazuh-indexer
 
 
 # --- Initialize security ---
@@ -79,4 +79,38 @@ systemctl restart wazuh-indexer
 
 # --- Test connectivity ---
 echo "[+] Testing Wazuh Indexer..."
-curl -k -u "${WAZUH_INDEXER_USERNAME}:${WAZUH_INDEXER_PASSWORD}" "${WAZUH_INDEXER_URL}" || true
+until curl -k -u admin:admin "https://${WAZUH_INDEXER_IP}:9200" > /dev/null 2>&1; do
+    echo "    Wazuh Indexer is not ready yet. Retrying in 5 seconds..."
+    sleep 5
+done
+
+echo "[+] Wazuh Indexer is up!"
+
+ADMIN_HASH=$(/usr/share/wazuh-indexer/plugins/opensearch-security/tools/hash.sh -p "${WAZUH_INDEXER_PASSWORD}" | tail -n 1 )
+KIBANA_HASH=$(/usr/share/wazuh-indexer/plugins/opensearch-security/tools/hash.sh -p "${WAZUH_KIBANASERVER_PASSWORD}" | tail -n 1)
+TEMPLATE_FILE="./internal_users.yml"
+INTERNAL_CONFIG_FILE="/tmp/internal_users_update.yml"
+
+# Define the specific variables the template needs
+VARS_TO_SUBSTITUTE='${WAZUH_INDEXER_IP} ${NODE_NAME}'
+
+envsubst "$VARS_TO_SUBSTITUTE" < "$TEMPLATE_FILE" | sudo tee "$INTERNAL_CONFIG_FILE" > /dev/null
+
+
+
+sudo JAVA_HOME=/usr/share/wazuh-indexer/jdk \
+/usr/share/wazuh-indexer/plugins/opensearch-security/tools/securityadmin.sh \
+  -f "$INTERNAL_CONFIG_FILE" \
+  -t internalusers \
+  -icl -nhnv \
+  -h "${WAZUH_INDEXER_IP}" \
+  -cacert /etc/wazuh-indexer/certs/root-ca.pem \
+  -cert /etc/wazuh-indexer/certs/admin.pem \
+  -key /etc/wazuh-indexer/certs/admin-key.pem
+
+# Clean up the temporary file
+rm -f "$INTERNAL_CONFIG_FILE"
+
+echo "[+] Wazuh Indexer is up!"
+
+curl -k -u admin:"$WAZUH_INDEXER_PASSWORD" "https://${WAZUH_INDEXER_IP}:9200"

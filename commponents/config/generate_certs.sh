@@ -5,8 +5,8 @@
 
 # --- Configuration ---
 ENV_FILE="../../.env"
-TEMPLATE_FILE="./config.yml.template"
-OUTPUT_FILE="./config.yml"
+TEMPLATE_FILE="./config.yml"
+OUTPUT_FILE="./generated_config.yml"
 
 # --- Pre-flight Checks ---
 if [ ! -f "$ENV_FILE" ]; then

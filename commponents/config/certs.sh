@@ -10,7 +10,7 @@
 adminpem="/etc/wazuh-indexer/certs/admin.pem"
 adminkey="/etc/wazuh-indexer/certs/admin-key.pem"
 readonly base_path="$(dirname "$(readlink -f "$0")")"
-readonly config_file="${base_path}/config.yml"
+readonly config_file="${base_path}/generated_config.yml" #  <--- Updated the config file name
 readonly logfile="${base_path}/wazuh-certificates-tool.log"
 cert_tmp_path="/tmp/wazuh-certificates"
 debug=">> ${logfile} 2>&1"
