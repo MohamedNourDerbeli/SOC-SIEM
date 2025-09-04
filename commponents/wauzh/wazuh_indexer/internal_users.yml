@@ -2,22 +2,26 @@
 _meta:
   type: "internalusers"
   config_version: 2
+
 admin:
   hash: "${ADMIN_HASH}"
   reserved: true
   backend_roles:
   - "admin"
   description: "Demo admin user"
+
 anomalyadmin:
   hash: "$2y$12$L9IX6Txc8gm/PRYbBxMueukUSFIe6D3.Y152b/rkGqu/wi84EoxBS"
   reserved: false
   opendistro_security_roles:
   - "anomaly_full_access"
   description: "Demo anomaly admin user, using internal role"
+
 kibanaserver:
   hash: "$2y$12$TxQKF6V2ejxFqyQrWbq/FuLkHSgmFIqNV0EQTPutUTangp2j26pAK"
   reserved: true
   description: "Demo OpenSearch Dashboards user"
+
 kibanaro:
   hash: "${KIBANA_HASH}"
   reserved: false
@@ -29,21 +33,32 @@ kibanaro:
     attribute2: "value2"
     attribute3: "value3"
   description: "Demo read only user, using external role mapping"
+
 logstash:
   hash: "$2y$12$JqkOHTd8FeBdzfDnUIAFGezh68X5U7hfoSxqC3Jv7s4RLPYCGsNLe"
   reserved: false
   backend_roles:
   - "logstash"
   description: "Demo logstash user, using external role mapping"
+
 readall:
   hash: "$2y$12$PfOK4x/eebkkbL052qLqPeh3sGIrrO8Ox.xMHCL.2eWanrp.IsNam"
   reserved: false
   backend_roles:
   - "readall"
   description: "Demo readall user, using external role mapping"
+
 snapshotrestore:
   hash: "$2y$12$jrVl2KgSA33JgIrDpdKhD.DeDUeEddu761cdRGQheQJyhAGZ/lgDS"
   reserved: false
   backend_roles:
   - "snapshotrestore"
   description: "Demo snapshotrestore user, using external role mapping"
+
+graylog:
+  hash: "${GRAYLOG_HASH}"
+  reserved: false
+  backend_roles:
+  - "all_access"
+  - "security_rest_api_access"
+  description: "Graylog internal user with admin roles for Elasticsearch connection"

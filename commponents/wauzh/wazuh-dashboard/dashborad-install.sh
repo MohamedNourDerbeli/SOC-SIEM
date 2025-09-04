@@ -50,3 +50,14 @@ VARS_TO_SUBSTITUTE='${WAZUH_INDEXER_IP} ${NODE_NAME}'
 envsubst "$VARS_TO_SUBSTITUTE" < "$TEMPLATE_FILE" | sudo tee "$DASHBOARD_CONFIG_FILE" > /dev/null
 
 echo "${WAZUH_KIBANASERVER_PASSWORD}" | sudo /usr/share/wazuh-dashboard/bin/opensearch-dashboards-keystore --allow-root add -f --stdin opensearch.password
+
+# --- Enable and start service ---
+echo "[+] Enabling and starting Wazuh Dashboard..."
+systemctl daemon-reload
+systemctl enable wazuh-dashboard
+systemctl start wazuh-dashboard
+
+echo "[+] Wazuh Dashboard installation and configuration completed."
+echo "    - Access the dashboard at: https://${WAZUH_DASHBOARD_IP}:443"
+echo "    - Login: admin"
+echo "    - Password: ${WAZUH_INDEXER_PASSWORD}"

@@ -44,8 +44,6 @@ tar -xf ../../config/wazuh-certificates.tar -C /etc/wazuh-indexer/certs/ \
     ./admin-key.pem \
     ./root-ca.pem
 
-mv -n /etc/wazuh-indexer/certs/${NODE_NAME}.pem /etc/wazuh-indexer/certs/wazuh.indexer.pem
-mv -n /etc/wazuh-indexer/certs/${NODE_NAME}-key.pem /etc/wazuh-indexer/certs/wazuh.indexer.key
 
 chmod 500 /etc/wazuh-indexer/certs
 chmod 400 /etc/wazuh-indexer/certs/*
@@ -53,7 +51,15 @@ chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/certs
 
 # --- Copy opensearch.yml ---
 echo "[+] Deploying opensearch.yml..."
-cp ./opensearch.yml /etc/wazuh-indexer/opensearch.yml
+
+VARS_TO_SUBSTITUTE='${WAZUH_INDEXER_HOSTNAME}'
+TEMPLATE_FILE="./opensearch.yml"
+DASHBOARD_CONFIG_FILE="/etc/wazuh-indexer/opensearch.yml"
+
+# Use envsubst to replace the variables in the template and write the final config
+envsubst "$VARS_TO_SUBSTITUTE" < "$TEMPLATE_FILE" | sudo tee "$DASHBOARD_CONFIG_FILE" > /dev/null
+
+
 chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.yml
 chmod 640 /etc/wazuh-indexer/opensearch.yml
 
@@ -88,11 +94,12 @@ echo "[+] Wazuh Indexer is up!"
 
 ADMIN_HASH=$(/usr/share/wazuh-indexer/plugins/opensearch-security/tools/hash.sh -p "${WAZUH_INDEXER_PASSWORD}" | tail -n 1 )
 KIBANA_HASH=$(/usr/share/wazuh-indexer/plugins/opensearch-security/tools/hash.sh -p "${WAZUH_KIBANASERVER_PASSWORD}" | tail -n 1)
+GRAYLOG_HASH=$(/usr/share/wazuh-indexer/plugins/opensearch-security/tools/hash.sh -p "${GRAYLOG_PASSWORD}" | tail -n 1)
 TEMPLATE_FILE="./internal_users.yml"
 INTERNAL_CONFIG_FILE="/tmp/internal_users_update.yml"
 
 # Define the specific variables the template needs
-VARS_TO_SUBSTITUTE='${WAZUH_INDEXER_IP} ${NODE_NAME}'
+VARS_TO_SUBSTITUTE='${ADMIN_HASH} ${KIBANA_HASH} ${GRAYLOG_HASH}'
 
 envsubst "$VARS_TO_SUBSTITUTE" < "$TEMPLATE_FILE" | sudo tee "$INTERNAL_CONFIG_FILE" > /dev/null
 

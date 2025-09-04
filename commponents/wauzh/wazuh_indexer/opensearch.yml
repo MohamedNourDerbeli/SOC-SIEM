@@ -21,10 +21,10 @@ plugins.security.ssl.transport.enforce_hostname_verification: false
 plugins.security.ssl.transport.resolve_hostname: false
 
 plugins.security.authcz.admin_dn:
-- "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
+  - "CN=admin,OU=Wazuh,O=Wazuh,L=California,C=US"
 
 plugins.security.nodes_dn:
-- "CN=${WAZUH_INDEXER_HOSTNAME},OU=Wazuh,O=Wazuh,L=California,C=US"
+  - "CN=${WAZUH_INDEXER_HOSTNAME},OU=Wazuh,O=Wazuh,L=California,C=US"
 
 plugins.security.restapi.roles_enabled:
 - "all_access"
