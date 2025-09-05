@@ -1,4 +1,6 @@
 #!/bin/bash
+set -Eeuo pipefail
+IFS=$'\n\t'
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 # Default configuration
@@ -75,7 +77,7 @@ detect_package_manager() {
 # Check for required dependencies
 check_dependencies() {
     if ! command -v git &>/dev/null; then
-        logger -e "git package could not be found. Please install with $(SYS_TYPE) install git."
+        logger -e "git package could not be found. Please install with ${SYS_TYPE:-<pkgmgr>} install git."
         exit 1
     fi
     logger "Git package found. Continuing..."
