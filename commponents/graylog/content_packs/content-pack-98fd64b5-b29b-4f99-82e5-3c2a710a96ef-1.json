@@ -1,0 +1,4186 @@
+{
+  "v": 1,
+  "id": "98fd64b5-b29b-4f99-82e5-3c2a710a96ef",
+  "rev": 1,
+  "name": "wazuh-base-config",
+  "summary": "SOC-SIEM",
+  "description": "",
+  "vendor": "Mohamed Nour Derbeli",
+  "url": "",
+  "parameters": [],
+  "entities": [
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "76b8a31c-897e-4411-bcf1-a76caa798ff8",
+      "data": {
+        "name": "PROG",
+        "pattern": "[\\x21-\\x5a\\x5c\\x5e-\\x7e]+"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector",
+        "version": "1"
+      },
+      "id": "4d1ecd39-5aa4-4fed-b90b-2f93b3d179f9",
+      "data": {
+        "name": {
+          "@type": "string",
+          "@value": "auditbeat"
+        },
+        "service_type": {
+          "@type": "string",
+          "@value": "exec"
+        },
+        "node_operating_system": {
+          "@type": "string",
+          "@value": "linux"
+        },
+        "executable_path": {
+          "@type": "string",
+          "@value": "/usr/lib/graylog-sidecar/auditbeat"
+        },
+        "execute_parameters": {
+          "@type": "string",
+          "@value": "-c  %s"
+        },
+        "validation_parameters": {
+          "@type": "string",
+          "@value": "test config -c %s"
+        },
+        "default_template": {
+          "@type": "string",
+          "@value": "# Required settings\nfields_under_root: true\nfields.collector_node_id: ${sidecar.nodeName}\nfields.gl2_source_collector: ${sidecar.nodeId}\n\n\noutput.logstash:\n   hosts: [\"${user.graylog_host}:5044\"]\npath:\n   data: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/auditbeat\"}/data\n   logs: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/auditbeat\"}/log\nfields:\n  event_source_product: linux_auditbeat\n\n# You can find the full configuration reference here:\n# https://www.elastic.co/guide/en/beats/auditbeat/index.html\n\n# =========================== Modules configuration ============================\nauditbeat.modules:\n\n# The auditd module collects events from the audit framework in the Linux kernel.\n- module: auditd\n  resolve_ids: true\n  failure_mode: log\n  backlog_limit: 8196\n  rate_limit: 0\n  include_raw_message: true\n  include_warnings: true\n  backpressure_strategy: auto\n\n  audit_rules: |\n    ## Define audit rules here.\n    ## Create file watches (-w) or syscall audits (-a or -A).\n\n    ## If you are on a 64 bit platform, everything should be running\n    ## in 64 bit mode. This rule will detect any use of the 32 bit syscalls\n    ## because this might be a sign of someone exploiting a hole in the 32\n    ## bit API.\n    -a always,exit -F arch=b32 -S all -F key=32bit-abi\n\n    ## Executions.\n    -a always,exit -F arch=b64 -S execve,execveat -k exec\n\n    ## External access (warning: these can be expensive to audit).\n    -a always,exit -F arch=b64 -S accept,bind,connect -F key=external-access\n\n    ## Identity changes.\n    -w /etc/group -p wa -k identity\n    -w /etc/passwd -p wa -k identity\n    -w /etc/gshadow -p wa -k identity\n    -w /etc/shadow -p wa -k identity\n\n    ## Unauthorized access attempts.\n    -a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access\n    -a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access\n    -a always,exit -F arch=b64 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access\n    -a always,exit -F arch=b64 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access\n\n# The file integrity module sends events when files are changed (created, updated, deleted).\n# The events contain file metadata and hashes.\n- module: file_integrity\n  paths:\n  - /bin\n  - /usr/bin\n  - /sbin\n  - /usr/sbin\n  - /etc\n  - /etc/graylog/server\n  exclude_files:\n  - '(?i)\\.sw[nop]$'\n  - '~$'\n  - '/\\.git($|/)'\n  include_files: []\n  scan_at_start: true\n  scan_rate_per_sec: 50 MiB\n  max_file_size: 100 MiB\n  hash_types: [sha256]\n  recursive: false"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "stream",
+        "version": "1"
+      },
+      "id": "1115454b-c91c-4086-acf8-14563d1d1671",
+      "data": {
+        "alarm_callbacks": [],
+        "outputs": [],
+        "remove_matches": {
+          "@type": "boolean",
+          "@value": true
+        },
+        "title": {
+          "@type": "string",
+          "@value": "pfSense Logs"
+        },
+        "stream_rules": [
+          {
+            "type": {
+              "@type": "string",
+              "@value": "EXACT"
+            },
+            "field": {
+              "@type": "string",
+              "@value": "log_type"
+            },
+            "value": {
+              "@type": "string",
+              "@value": "pfsense"
+            },
+            "inverted": {
+              "@type": "boolean",
+              "@value": false
+            },
+            "description": {
+              "@type": "string",
+              "@value": ""
+            }
+          }
+        ],
+        "alert_conditions": [],
+        "matching_type": {
+          "@type": "string",
+          "@value": "AND"
+        },
+        "disabled": {
+          "@type": "boolean",
+          "@value": false
+        },
+        "description": {
+          "@type": "string",
+          "@value": "pfSense Logs"
+        },
+        "default_stream": {
+          "@type": "boolean",
+          "@value": false
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "1c4ab317-b9f5-4a46-a9e8-c57c17d0fa7c",
+      "data": {
+        "name": "IPV6",
+        "pattern": "((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(\\.(25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)){3}))|:)))(%.+)?"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector_configuration",
+        "version": "1"
+      },
+      "id": "c9aa0eb3-cb22-4e33-bee9-2241547cac8a",
+      "data": {
+        "collector_id": {
+          "@type": "string",
+          "@value": "5dbea4e0-c0b2-416b-b73a-3b74dfa04b7a"
+        },
+        "title": {
+          "@type": "string",
+          "@value": "filebeat-darwin-default"
+        },
+        "color": {
+          "@type": "string",
+          "@value": "#ffffff"
+        },
+        "template": {
+          "@type": "string",
+          "@value": "# Required settings\nfields_under_root: true\nfields.collector_node_id: ${sidecar.nodeName}\nfields.gl2_source_collector: ${sidecar.nodeId}\n\n\noutput.logstash:\n   hosts: [\"${user.graylog_host}:5044\"]\npath:\n   data: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/data\n   logs: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/log\n\nfilebeat.inputs:\n\n- type: filestream\n  id: snort-filestream\n  enabled: true\n  paths:\n    - /var/log/snort/alert_json.txt\n    - /var/log/snort/appid-output.json\n  parsers:\n    - ndjson:\n        target: \"snort3\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: snort3\n\n- type: filestream\n  id: zeek-filestream\n  enabled: true\n  paths:\n    - /opt/zeek/logs/current\n  parsers:\n    - ndjson:\n        target: \"zeek\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: zeek\n\n- type: filestream\n  id: apache-filestream\n  enabled: true\n  paths:\n  - /etc/httpd/log/access_log\n  - /etc/httpd/log/error_log\n  fields_under_root: true\n  fields:\n      event_source_product: apache_httpd\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "de69b35d-5514-409a-a19c-0aa1b40f2c89",
+      "data": {
+        "name": "NOTSPACE",
+        "pattern": "\\S+"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "c9d6c88c-b1aa-41a6-871d-99d1bff0969f",
+      "data": {
+        "name": "BASE16FLOAT",
+        "pattern": "\\b(?<![0-9A-Fa-f.])(?:[+-]?(?:0x)?(?:(?:[0-9A-Fa-f]+(?:\\.[0-9A-Fa-f]*)?)|(?:\\.[0-9A-Fa-f]+)))\\b"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "71167cf4-315c-412b-b981-b82a227c661a",
+      "data": {
+        "name": "SPACE",
+        "pattern": "\\s*"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "94c57a84-6427-4b2c-8086-90698336bf4c",
+      "data": {
+        "name": "HOUR",
+        "pattern": "(?:2[0123]|[01]?[0-9])"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "60d6f9d2-2145-45a7-83ea-d2ec9b5671bd",
+      "data": {
+        "name": "IPV4",
+        "pattern": "(?<![0-9])(?:(?:[0-1]?[0-9]{1,2}|2[0-4][0-9]|25[0-5])[.](?:[0-1]?[0-9]{1,2}|2[0-4][0-9]|25[0-5])[.](?:[0-1]?[0-9]{1,2}|2[0-4][0-9]|25[0-5])[.](?:[0-1]?[0-9]{1,2}|2[0-4][0-9]|25[0-5]))(?![0-9])"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector",
+        "version": "1"
+      },
+      "id": "0cc891b0-2415-4f5e-899c-25ad739b8be1",
+      "data": {
+        "name": {
+          "@type": "string",
+          "@value": "nxlog"
+        },
+        "service_type": {
+          "@type": "string",
+          "@value": "exec"
+        },
+        "node_operating_system": {
+          "@type": "string",
+          "@value": "linux"
+        },
+        "executable_path": {
+          "@type": "string",
+          "@value": "/usr/bin/nxlog"
+        },
+        "execute_parameters": {
+          "@type": "string",
+          "@value": "-f -c %s"
+        },
+        "validation_parameters": {
+          "@type": "string",
+          "@value": "-v -c %s"
+        },
+        "default_template": {
+          "@type": "string",
+          "@value": "define ROOT /usr/bin\n\n<Extension gelfExt>\n  Module xm_gelf\n  # Avoid truncation of the short_message field to 64 characters.\n  ShortMessageLength 65536\n</Extension>\n\n<Extension syslogExt>\n  Module xm_syslog\n</Extension>\n\nUser nxlog\nGroup nxlog\n\nModuledir /usr/lib/nxlog/modules\nCacheDir ${sidecar.spoolDir!\"/var/spool/nxlog\"}/data\nPidFile ${sidecar.spoolDir!\"/var/run/nxlog\"}/nxlog.pid\nLogFile ${sidecar.spoolDir!\"/var/log/nxlog\"}/nxlog.log\nLogLevel INFO\n\n\n<Input file>\n\tModule im_file\n\tFile '/var/log/*.log'\n\tPollInterval 1\n\tSavePos\tTrue\n\tReadFromLast True\n\tRecursive False\n\tRenameCheck False\n\tExec $FileName = file_name(); # Send file name with each message\n</Input>\n\n#<Input syslog-udp>\n#\tModule im_udp\n#\tHost 127.0.0.1\n#\tPort 514\n#\tExec parse_syslog_bsd();\n#</Input>\n\n<Output gelf>\n\tModule om_tcp\n\tHost ${user.graylog_host}\n\tPort 12201\n\tOutputType  GELF_TCP\n\t<Exec>\n\t  # These fields are needed for ingestion\n\t  $gl2_source_collector = '${sidecar.nodeId}';\n\t  $collector_node_id = '${sidecar.nodeName}';\n\t</Exec>\n</Output>\n\n\n<Route route-1>\n  Path file => gelf\n</Route>\n#<Route route-2>\n#  Path syslog-udp => gelf\n#</Route>\n\n\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "c29fc490-f62b-40ce-90f6-fa347392d9b6",
+      "data": {
+        "name": "HTTPD24_ERRORLOG",
+        "pattern": "\\[%{HTTPDERROR_DATE:timestamp}\\] \\[%{WORD:module}:%{LOGLEVEL:loglevel}\\] \\[pid %{POSINT:pid}:tid %{NUMBER:tid}\\]( \\(%{POSINT:proxy_errorcode}\\)%{DATA:proxy_errormessage}:)?( \\[client %{IPORHOST:client}:%{POSINT:clientport}\\])? %{DATA:errorcode}: %{GREEDYDATA:message}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "4dd229db-f1f3-4366-9dc8-59b1a1d6f882",
+      "data": {
+        "name": "DATE_US",
+        "pattern": "%{MONTHNUM}[/-]%{MONTHDAY}[/-]%{YEAR}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "08db6eaa-a6b1-4da8-a518-4b2bd8b315f0",
+      "data": {
+        "name": "URIPROTO",
+        "pattern": "[A-Za-z]+(\\+[A-Za-z+]+)?"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "306aeb2c-2782-4c1f-804e-be331511591d",
+      "data": {
+        "name": "UNIXPATH",
+        "pattern": "(/([\\w_%!$@:.,~-]+|\\\\.)*)+"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "504d2e13-7e7a-428d-942c-7c17e4650c7a",
+      "data": {
+        "name": "DATESTAMP_RFC2822",
+        "pattern": "%{DAY}, %{MONTHDAY} %{MONTH} %{YEAR} %{TIME} %{ISO8601_TIMEZONE}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector",
+        "version": "1"
+      },
+      "id": "17133e02-22e8-4cc3-b6f3-da79335bebec",
+      "data": {
+        "name": {
+          "@type": "string",
+          "@value": "filebeat"
+        },
+        "service_type": {
+          "@type": "string",
+          "@value": "exec"
+        },
+        "node_operating_system": {
+          "@type": "string",
+          "@value": "freebsd"
+        },
+        "executable_path": {
+          "@type": "string",
+          "@value": "/usr/share/filebeat/bin/filebeat"
+        },
+        "execute_parameters": {
+          "@type": "string",
+          "@value": "-c  %s"
+        },
+        "validation_parameters": {
+          "@type": "string",
+          "@value": "test config -c %s"
+        },
+        "default_template": {
+          "@type": "string",
+          "@value": "# Required settings\nfields_under_root: true\nfields.collector_node_id: ${sidecar.nodeName}\nfields.gl2_source_collector: ${sidecar.nodeId}\n\n\noutput.logstash:\n   hosts: [\"${user.graylog_host}:5044\"]\npath:\n   data: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/data\n   logs: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/log\n\nfilebeat.inputs:\n\n- type: filestream\n  id: snort-filestream\n  enabled: true\n  paths:\n    - /var/log/snort/alert_json.txt\n    - /var/log/snort/appid-output.json\n  parsers:\n    - ndjson:\n        target: \"snort3\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: snort3\n\n- type: filestream\n  id: zeek-filestream\n  enabled: true\n  paths:\n    - /opt/zeek/logs/current\n  parsers:\n    - ndjson:\n        target: \"zeek\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: zeek\n\n- type: filestream\n  id: apache-filestream\n  enabled: true\n  paths:\n  - /var/log/httpd-access.log\n  - /var/log/httpd-error.log\n  fields_under_root: true\n  fields:\n      event_source_product: apache_httpd\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "cdff9da4-1b4c-48d9-ac60-8942dfc1e1b2",
+      "data": {
+        "name": "QS",
+        "pattern": "%{QUOTEDSTRING}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "url_whitelist_entry",
+        "version": "1"
+      },
+      "id": "15d115a2-6177-4037-9cc1-761ca4c1dee0",
+      "data": {
+        "id": "bffb487f-4ed4-4376-b693-e17fa1ac3ba3",
+        "type": "regex",
+        "title": "AbuseIPDB",
+        "value": "^\\Qhttps://api.abuseipdb.com/api/v2/check?ipAddress=\\E.*?\\Q&maxAgeInDays=90&verbose\\E$"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=3.1.3"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "ada55da4-a45e-4b30-855f-44effb078bfc",
+      "data": {
+        "name": "TZ",
+        "pattern": "(?:[PMCE][SD]T|UTC)"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector",
+        "version": "1"
+      },
+      "id": "90f14321-103a-46fa-a775-6cf6924fe91c",
+      "data": {
+        "name": {
+          "@type": "string",
+          "@value": "nxlog"
+        },
+        "service_type": {
+          "@type": "string",
+          "@value": "svc"
+        },
+        "node_operating_system": {
+          "@type": "string",
+          "@value": "windows"
+        },
+        "executable_path": {
+          "@type": "string",
+          "@value": "C:\\Program Files (x86)\\nxlog\\nxlog.exe"
+        },
+        "execute_parameters": {
+          "@type": "string",
+          "@value": "-c \"%s\""
+        },
+        "validation_parameters": {
+          "@type": "string",
+          "@value": "-v -f -c \"%s\""
+        },
+        "default_template": {
+          "@type": "string",
+          "@value": "define ROOT ${sidecar.spoolDir!\"C:\\\\Program Files (x86)\"}\\nxlog\n\nModuledir %ROOT%\\modules\nCacheDir %ROOT%\\data\nPidfile %ROOT%\\data\\nxlog.pid\nSpoolDir %ROOT%\\data\nLogFile %ROOT%\\data\\nxlog.log\nLogLevel INFO\n\n<Extension logrotate>\n    Module  xm_fileop\n    <Schedule>\n        When    @daily\n        Exec    file_cycle('%ROOT%\\data\\nxlog.log', 7);\n     </Schedule>\n</Extension>\n\n\n<Extension gelfExt>\n  Module xm_gelf\n  # Avoid truncation of the short_message field to 64 characters.\n  ShortMessageLength 65536\n</Extension>\n\n<Input eventlog>\n        Module im_msvistalog\n        PollInterval 1\n        SavePos True\n        ReadFromLast True\n        \n        #Channel System\n        #<QueryXML>\n        #  <QueryList>\n        #   <Query Id='1'>\n        #    <Select Path='Security'>*[System/Level=4]</Select>\n        #    </Query>\n        #  </QueryList>\n        #</QueryXML>\n</Input>\n\n\n<Input file>\n\tModule im_file\n\tFile 'C:\\Windows\\MyLogDir\\\\*.log'\n\tPollInterval 1\n\tSavePos\tTrue\n\tReadFromLast True\n\tRecursive False\n\tRenameCheck False\n\tExec $FileName = file_name(); # Send file name with each message\n</Input>\n\n\n<Output gelf>\n\tModule om_tcp\n\tHost ${user.graylog_host}\n\tPort 12201\n\tOutputType  GELF_TCP\n\t<Exec>\n\t  # These fields are needed for ingestion\n\t  $gl2_source_collector = '${sidecar.nodeId}';\n\t  $collector_node_id = '${sidecar.nodeName}';\n\t</Exec>\n</Output>\n\n\n<Route route-1>\n  Path eventlog => gelf\n</Route>\n<Route route-2>\n  Path file => gelf\n</Route>\n\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "590153ea-5892-4d7b-94a3-2af38abf3a43",
+      "data": {
+        "name": "HTTPDUSER",
+        "pattern": "%{EMAILADDRESS}|%{USER}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "edd4639f-4a51-4e59-b01a-f79c6fd76cc0",
+      "data": {
+        "name": "HTTPD_ERRORLOG",
+        "pattern": "%{HTTPD20_ERRORLOG}|%{HTTPD24_ERRORLOG}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "af15e717-e62f-41c7-9f46-9c84eb426086",
+      "data": {
+        "name": "SYSLOGFACILITY",
+        "pattern": "<%{NONNEGINT:facility}.%{NONNEGINT:priority}>"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "url_whitelist_entry",
+        "version": "1"
+      },
+      "id": "efed6835-d607-4736-bf63-2bb63a25f447",
+      "data": {
+        "id": "33c9cbfc-671a-41d0-b973-4d03b3423d71",
+        "type": "regex",
+        "title": "AbuseIPDB",
+        "value": "^\\Qhttps://api.abuseipdb.com/api/v2/check?ip=\\E.*?\\Q&maxAgeInDays=90\\E$"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=3.1.3"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "b9fb86a4-11c9-4b4d-9264-ea18301e8f97",
+      "data": {
+        "name": "NONNEGINT",
+        "pattern": "\\b(?:[0-9]+)\\b"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "7c1a6f1d-8a28-4ecd-b730-803da3ac1ee6",
+      "data": {
+        "name": "DATESTAMP",
+        "pattern": "%{DATE}[- ]%{TIME}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "1d80ad58-b875-4e67-8bde-99733f3ff2be",
+      "data": {
+        "name": "YEAR",
+        "pattern": "(?>\\d\\d){1,2}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "b6a342d4-a677-4773-9c59-0c593ed64725",
+      "data": {
+        "name": "GREEDYDATA",
+        "pattern": ".*"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "13855b51-fbe6-415a-94a6-3ab32d8e45fc",
+      "data": {
+        "name": "POSINT",
+        "pattern": "\\b(?:[1-9][0-9]*)\\b"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "f1297d6e-ff0c-41bb-8320-b717f8914564",
+      "data": {
+        "name": "MONTHNUM",
+        "pattern": "(?:0?[1-9]|1[0-2])"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "37be8f63-df49-496b-898d-5731ad76cfb7",
+      "data": {
+        "name": "USERNAME",
+        "pattern": "[a-zA-Z0-9._-]+"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "bd686559-b348-45f1-b24c-3546bafa5ab4",
+      "data": {
+        "name": "URIPATHPARAM",
+        "pattern": "%{URIPATH}(?:%{URIPARAM})?"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "8042e084-c074-40c2-9ab9-b25edbb6d248",
+      "data": {
+        "name": "SYSLOGBASE",
+        "pattern": "%{SYSLOGTIMESTAMP:timestamp} (?:%{SYSLOGFACILITY} )?%{SYSLOGHOST:logsource} %{SYSLOGPROG}:"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "48765f60-270c-4b3c-a91a-0fae57b943d1",
+      "data": {
+        "name": "DAY",
+        "pattern": "(?:Mon(?:day)?|Tue(?:sday)?|Wed(?:nesday)?|Thu(?:rsday)?|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?)"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "84651844-9ee4-4524-84d1-15bf1bc6cefb",
+      "data": {
+        "name": "CISCOMAC",
+        "pattern": "(?:(?:[A-Fa-f0-9]{4}\\.){2}[A-Fa-f0-9]{4})"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "d598083b-0af0-441b-b3ab-f39671aa2d4e",
+      "data": {
+        "name": "PATH",
+        "pattern": "(?:%{UNIXPATH}|%{WINPATH})"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "2dcdfa8e-7dac-492c-97c3-c37b3152ff8c",
+      "data": {
+        "name": "DATESTAMP_RFC822",
+        "pattern": "%{DAY} %{MONTH} %{MONTHDAY} %{YEAR} %{TIME} %{TZ}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector_configuration",
+        "version": "1"
+      },
+      "id": "d09e68c6-70d7-418c-9aaa-3177b8bac73f",
+      "data": {
+        "collector_id": {
+          "@type": "string",
+          "@value": "9521215d-89f9-4d42-b70b-a4d3cd6b6b9a"
+        },
+        "title": {
+          "@type": "string",
+          "@value": "winlogbeat-default"
+        },
+        "color": {
+          "@type": "string",
+          "@value": "#ffffff"
+        },
+        "template": {
+          "@type": "string",
+          "@value": "# Required settings\nfields_under_root: true\nfields.collector_node_id: ${sidecar.nodeName}\nfields.gl2_source_collector: ${sidecar.nodeId}\n\n\noutput.logstash:\n   hosts: [\"${user.graylog_host}:5044\"]\npath:\n  data: ${sidecar.spoolDir!\"C:\\\\Program Files\\\\Graylog\\\\sidecar\\\\cache\\\\winlogbeat\"}\\data\n  logs: ${sidecar.spoolDir!\"C:\\\\Program Files\\\\Graylog\\\\sidecar\"}\\logs\ntags:\n - windows\nwinlogbeat:\n  event_logs:\n   - name: Application\n     ignore_older: 96h\n   - name: System\n     ignore_older: 96h\n   - name: Security\n     ignore_older: 96h\n   - name: Setup\n     ignore_older: 96h\n   - name: ForwardedEvents\n     forwarded: true\n     ignore_older: 96h\n   - name: Microsoft-Windows-Windows Defender/Operational\n     ignore_older: 96h\n   - name: Microsoft-Windows-Sysmon/Operational\n     ignore_older: 96h\n   - name: Microsoft-Windows-TerminalServices-LocalSessionManager/Operational\n     ignore_older: 96h\n   - name: Microsoft-Windows-PowerShell/Operational\n     ignore_older: 96h\n   - name: windows PowerShell\n     ignore_older: 96h"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "lookup_adapter",
+        "version": "1"
+      },
+      "id": "5fc16149-95f4-45c5-957a-66d12e0de198",
+      "data": {
+        "_scope": {
+          "@type": "string",
+          "@value": "DEFAULT"
+        },
+        "name": {
+          "@type": "string",
+          "@value": "abuseipdb_adapter"
+        },
+        "title": {
+          "@type": "string",
+          "@value": "AbuseIPDB Lookup"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "Lookup IP reputation from AbuseIPDB API"
+        },
+        "configuration": {
+          "type": {
+            "@type": "string",
+            "@value": "httpjsonpath"
+          },
+          "url": {
+            "@type": "string",
+            "@value": "https://api.abuseipdb.com/api/v2/check?ipAddress=${key}&maxAgeInDays=90&verbose"
+          },
+          "single_value_jsonpath": {
+            "@type": "string",
+            "@value": "$.data.abuseConfidenceScore"
+          },
+          "multi_value_jsonpath": {
+            "@type": "string",
+            "@value": "$['data']['ipAddress','abuseConfidenceScore','usageType','isp','domain','lastReportedAt']"
+          },
+          "user_agent": {
+            "@type": "string",
+            "@value": "Graylog Lookup Adapter"
+          },
+          "headers": {
+            "Key": {
+              "@type": "string",
+              "@value": "${ABUSEIPDB_API_KEY}"
+            },
+            "Accept": {
+              "@type": "string",
+              "@value": "application/json"
+            }
+          }
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "c473baaf-aeb4-4320-af22-ff405ddaf5ea",
+      "data": {
+        "name": "DATA",
+        "pattern": ".*?"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "input",
+        "version": "1"
+      },
+      "id": "cb68a422-f549-40e9-abac-86051e6c7b58",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "WAZUH EVENTS FLUENT BIT - TCP"
+        },
+        "configuration": {
+          "tls_key_file": {
+            "@type": "string",
+            "@value": ""
+          },
+          "port": {
+            "@type": "integer",
+            "@value": 5555
+          },
+          "tls_enable": {
+            "@type": "boolean",
+            "@value": false
+          },
+          "use_null_delimiter": {
+            "@type": "boolean",
+            "@value": false
+          },
+          "recv_buffer_size": {
+            "@type": "integer",
+            "@value": 1048576
+          },
+          "tcp_keepalive": {
+            "@type": "boolean",
+            "@value": false
+          },
+          "tls_client_auth_cert_file": {
+            "@type": "string",
+            "@value": ""
+          },
+          "bind_address": {
+            "@type": "string",
+            "@value": "0.0.0.0"
+          },
+          "tls_cert_file": {
+            "@type": "string",
+            "@value": ""
+          },
+          "max_message_size": {
+            "@type": "integer",
+            "@value": 2097152
+          },
+          "tls_client_auth": {
+            "@type": "string",
+            "@value": "disabled"
+          },
+          "charset_name": {
+            "@type": "string",
+            "@value": "UTF-8"
+          },
+          "number_worker_threads": {
+            "@type": "integer",
+            "@value": 10
+          },
+          "tls_key_password": {
+            "@type": "string",
+            "@value": ""
+          }
+        },
+        "static_fields": {
+          "log_type": {
+            "@type": "string",
+            "@value": "wazuh"
+          }
+        },
+        "type": {
+          "@type": "string",
+          "@value": "org.graylog2.inputs.raw.tcp.RawTCPInput"
+        },
+        "global": {
+          "@type": "boolean",
+          "@value": false
+        },
+        "extractors": [
+          {
+            "target_field": {
+              "@type": "string",
+              "@value": ""
+            },
+            "condition_value": {
+              "@type": "string",
+              "@value": ""
+            },
+            "order": {
+              "@type": "integer",
+              "@value": 0
+            },
+            "converters": [],
+            "configuration": {
+              "list_separator": {
+                "@type": "string",
+                "@value": ", "
+              },
+              "kv_separator": {
+                "@type": "string",
+                "@value": ":"
+              },
+              "key_prefix": {
+                "@type": "string",
+                "@value": ""
+              },
+              "key_separator": {
+                "@type": "string",
+                "@value": "_"
+              },
+              "replace_key_whitespace": {
+                "@type": "boolean",
+                "@value": false
+              },
+              "key_whitespace_replacement": {
+                "@type": "string",
+                "@value": "_"
+              }
+            },
+            "source_field": {
+              "@type": "string",
+              "@value": "message"
+            },
+            "title": {
+              "@type": "string",
+              "@value": "FLUENTD - JSON EXTRACTOR"
+            },
+            "type": {
+              "@type": "string",
+              "@value": "JSON"
+            },
+            "cursor_strategy": {
+              "@type": "string",
+              "@value": "COPY"
+            },
+            "condition_type": {
+              "@type": "string",
+              "@value": "NONE"
+            }
+          },
+          {
+            "target_field": {
+              "@type": "string",
+              "@value": "rule_group1"
+            },
+            "condition_value": {
+              "@type": "string",
+              "@value": ""
+            },
+            "order": {
+              "@type": "integer",
+              "@value": 0
+            },
+            "converters": [],
+            "configuration": {
+              "index": {
+                "@type": "integer",
+                "@value": 1
+              },
+              "split_by": {
+                "@type": "string",
+                "@value": ","
+              }
+            },
+            "source_field": {
+              "@type": "string",
+              "@value": "rule_groups"
+            },
+            "title": {
+              "@type": "string",
+              "@value": "RULE GROUP 1"
+            },
+            "type": {
+              "@type": "string",
+              "@value": "SPLIT_AND_INDEX"
+            },
+            "cursor_strategy": {
+              "@type": "string",
+              "@value": "COPY"
+            },
+            "condition_type": {
+              "@type": "string",
+              "@value": "NONE"
+            }
+          },
+          {
+            "target_field": {
+              "@type": "string",
+              "@value": "rule_group2"
+            },
+            "condition_value": {
+              "@type": "string",
+              "@value": ""
+            },
+            "order": {
+              "@type": "integer",
+              "@value": 0
+            },
+            "converters": [],
+            "configuration": {
+              "index": {
+                "@type": "integer",
+                "@value": 2
+              },
+              "split_by": {
+                "@type": "string",
+                "@value": ","
+              }
+            },
+            "source_field": {
+              "@type": "string",
+              "@value": "rule_groups"
+            },
+            "title": {
+              "@type": "string",
+              "@value": "RULE GROUP 2"
+            },
+            "type": {
+              "@type": "string",
+              "@value": "SPLIT_AND_INDEX"
+            },
+            "cursor_strategy": {
+              "@type": "string",
+              "@value": "COPY"
+            },
+            "condition_type": {
+              "@type": "string",
+              "@value": "NONE"
+            }
+          },
+          {
+            "target_field": {
+              "@type": "string",
+              "@value": "rule_group3"
+            },
+            "condition_value": {
+              "@type": "string",
+              "@value": ""
+            },
+            "order": {
+              "@type": "integer",
+              "@value": 0
+            },
+            "converters": [],
+            "configuration": {
+              "index": {
+                "@type": "integer",
+                "@value": 3
+              },
+              "split_by": {
+                "@type": "string",
+                "@value": ","
+              }
+            },
+            "source_field": {
+              "@type": "string",
+              "@value": "rule_groups"
+            },
+            "title": {
+              "@type": "string",
+              "@value": "RULE GROUP 3"
+            },
+            "type": {
+              "@type": "string",
+              "@value": "SPLIT_AND_INDEX"
+            },
+            "cursor_strategy": {
+              "@type": "string",
+              "@value": "COPY"
+            },
+            "condition_type": {
+              "@type": "string",
+              "@value": "NONE"
+            }
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "48d10d3e-abac-44d5-96c4-2983878db331",
+      "data": {
+        "name": "SECOND",
+        "pattern": "(?:(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?)"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector",
+        "version": "1"
+      },
+      "id": "651b4e4d-3bdc-4145-91d0-85eae986975e",
+      "data": {
+        "name": {
+          "@type": "string",
+          "@value": "filebeat"
+        },
+        "service_type": {
+          "@type": "string",
+          "@value": "svc"
+        },
+        "node_operating_system": {
+          "@type": "string",
+          "@value": "windows"
+        },
+        "executable_path": {
+          "@type": "string",
+          "@value": "C:\\Program Files\\Graylog\\sidecar\\filebeat.exe"
+        },
+        "execute_parameters": {
+          "@type": "string",
+          "@value": "-c \"%s\""
+        },
+        "validation_parameters": {
+          "@type": "string",
+          "@value": "test config -c \"%s\""
+        },
+        "default_template": {
+          "@type": "string",
+          "@value": "# Required settings\nfields_under_root: true\nfields.collector_node_id: ${sidecar.nodeName}\nfields.gl2_source_collector: ${sidecar.nodeId}\n\n\noutput.logstash:\n   hosts: [\"${user.graylog_host}:5044\"]\npath:\n   data: ${sidecar.spoolDir!\"C:\\\\Program Files\\\\Graylog\\\\sidecar\\\\cache\\\\filebeat\"}\\data\n   logs: ${sidecar.spoolDir!\"C:\\\\Program Files\\\\Graylog\\\\sidecar\"}\\logs\ntags:\n- windows\nfilebeat.inputs:\n- type: log\n  enabled: true\n  paths:\n  - C:\\logs\\log.log\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "5ffbf24d-0223-4494-a5ac-7337384c1b08",
+      "data": {
+        "name": "INT",
+        "pattern": "(?:[+-]?(?:[0-9]+))"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "stream",
+        "version": "1"
+      },
+      "id": "3c4cc21f-57c1-4b73-85a8-885195dab3a7",
+      "data": {
+        "alarm_callbacks": [],
+        "outputs": [],
+        "remove_matches": {
+          "@type": "boolean",
+          "@value": true
+        },
+        "title": {
+          "@type": "string",
+          "@value": "WAZUH ALERTS"
+        },
+        "stream_rules": [
+          {
+            "type": {
+              "@type": "string",
+              "@value": "EXACT"
+            },
+            "field": {
+              "@type": "string",
+              "@value": "log_type"
+            },
+            "value": {
+              "@type": "string",
+              "@value": "wazuh"
+            },
+            "inverted": {
+              "@type": "boolean",
+              "@value": false
+            },
+            "description": {
+              "@type": "string",
+              "@value": ""
+            }
+          }
+        ],
+        "alert_conditions": [],
+        "matching_type": {
+          "@type": "string",
+          "@value": "AND"
+        },
+        "disabled": {
+          "@type": "boolean",
+          "@value": false
+        },
+        "description": {
+          "@type": "string",
+          "@value": "WAZUH ALERTS"
+        },
+        "default_stream": {
+          "@type": "boolean",
+          "@value": false
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "facc8d07-539c-42e0-ac95-e31325e1f55b",
+      "data": {
+        "name": "HOSTPORT",
+        "pattern": "%{IPORHOST}:%{POSINT}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "fcff8344-d1b0-4d9b-b4b6-083366565dd7",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "WINDOWS SYSMON EVENT 3 LOG NORMALIZATION"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "WINDOWS SYSMON EVENT 3 LOG NORMALIZATION"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"WINDOWS SYSMON EVENT 3 LOG NORMALIZATION\"\nwhen\n    $message.rule_group1 == \"windows\" AND $message.rule_group3 == \"sysmon_event3\"\nthen\n    set_field(\"process_image\", $message.data_win_eventdata_image);\n    set_field(\"process_id\", $message.data_win_eventdata_processId);\n    set_field(\"protocol\", $message.data_win_eventdata_protocol);\n    set_field(\"user_name\", $message.data_win_eventdata_user);\n    set_field(\"dst_ip\", $message.data_win_eventdata_destinationIp);\n    set_field(\"dst_port\", $message.data_win_eventdata_destinationPort);\n    set_field(\"src_ip\", $message.data_win_eventdata_sourceIp);\n    set_field(\"src_port\", $message.data_win_eventdata_sourcePort);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "607403a6-c429-4e6a-ad09-e1637fc18707",
+      "data": {
+        "name": "IPORHOST",
+        "pattern": "(?:%{IP}|%{HOSTNAME})"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "acc24db6-f43a-4c5d-bcb6-cce109cc6817",
+      "data": {
+        "name": "QUOTEDSTRING",
+        "pattern": "(?>(?<!\\\\)(?>\"(?>\\\\.|[^\\\\\"]+)+\"|\"\"|(?>'(?>\\\\.|[^\\\\']+)+')|''|(?>`(?>\\\\.|[^\\\\`]+)+`)|``))"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "864b0461-14f6-4a26-983b-f91da011981f",
+      "data": {
+        "name": "SYSLOGPROG",
+        "pattern": "%{PROG:program}(?:\\[%{POSINT:pid}\\])?"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "97620dc6-e027-4b28-b6cc-d86626dac6a3",
+      "data": {
+        "name": "MINUTE",
+        "pattern": "(?:[0-5][0-9])"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "fa752d95-53c9-443f-98ef-ea8a37e3547f",
+      "data": {
+        "name": "COMBINEDAPACHELOG",
+        "pattern": "%{COMMONAPACHELOG} %{QS:referrer} %{QS:agent}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "b9dd01b9-f9ac-4f41-b407-091e4ddcd16e",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "LOG NORMALIZATION"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "LOG NORMALIZATION"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"LOG NORMALIZATION\"\nstage 0 match either\nrule \"LINUX SYSMON EVENT 3 LOG NORMALIZATION\"\nrule \"WINDOWS SYSMON EVENT 3 LOG NORMALIZATION\"\nrule \"drop predecoder_timestamp\"\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "3c4cc21f-57c1-4b73-85a8-885195dab3a7"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "c25076c5-215c-4860-8952-c8ecf1752845",
+      "data": {
+        "name": "UUID",
+        "pattern": "[A-Fa-f0-9]{8}-(?:[A-Fa-f0-9]{4}-){3}[A-Fa-f0-9]{12}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "04678bf6-3c9e-4950-b87b-b8a27877eaef",
+      "data": {
+        "name": "DATE_EU",
+        "pattern": "%{MONTHDAY}[./-]%{MONTHNUM}[./-]%{YEAR}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "9cf98c50-dfa8-414b-85b8-e1c39527700e",
+      "data": {
+        "name": "BASE10NUM",
+        "pattern": "(?<![0-9.+-])(?>[+-]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "f403879c-d412-4443-9f20-9a76bcf82b8a",
+      "data": {
+        "name": "MONTHDAY",
+        "pattern": "(?:(?:0[1-9])|(?:[12][0-9])|(?:3[01])|[1-9])"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector",
+        "version": "1"
+      },
+      "id": "5dbea4e0-c0b2-416b-b73a-3b74dfa04b7a",
+      "data": {
+        "name": {
+          "@type": "string",
+          "@value": "filebeat"
+        },
+        "service_type": {
+          "@type": "string",
+          "@value": "exec"
+        },
+        "node_operating_system": {
+          "@type": "string",
+          "@value": "darwin"
+        },
+        "executable_path": {
+          "@type": "string",
+          "@value": "/usr/share/filebeat/bin/filebeat"
+        },
+        "execute_parameters": {
+          "@type": "string",
+          "@value": "-c  %s"
+        },
+        "validation_parameters": {
+          "@type": "string",
+          "@value": "test config -c %s"
+        },
+        "default_template": {
+          "@type": "string",
+          "@value": "# Required settings\nfields_under_root: true\nfields.collector_node_id: ${sidecar.nodeName}\nfields.gl2_source_collector: ${sidecar.nodeId}\n\n\noutput.logstash:\n   hosts: [\"${user.graylog_host}:5044\"]\npath:\n   data: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/data\n   logs: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/log\n\nfilebeat.inputs:\n\n- type: filestream\n  id: snort-filestream\n  enabled: true\n  paths:\n    - /var/log/snort/alert_json.txt\n    - /var/log/snort/appid-output.json\n  parsers:\n    - ndjson:\n        target: \"snort3\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: snort3\n\n- type: filestream\n  id: zeek-filestream\n  enabled: true\n  paths:\n    - /opt/zeek/logs/current\n  parsers:\n    - ndjson:\n        target: \"zeek\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: zeek\n\n- type: filestream\n  id: apache-filestream\n  enabled: true\n  paths:\n  - /etc/httpd/log/access_log\n  - /etc/httpd/log/error_log\n  fields_under_root: true\n  fields:\n      event_source_product: apache_httpd\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "8ca4bdfe-aef0-495c-91d0-a407d4a46837",
+      "data": {
+        "name": "DATESTAMP_OTHER",
+        "pattern": "%{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{TZ} %{YEAR}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "31e0b212-49b6-4af7-a103-b126d9829763",
+      "data": {
+        "name": "DATE",
+        "pattern": "%{DATE_US}|%{DATE_EU}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "30c8352f-4345-4337-ae6d-d52cea1247f6",
+      "data": {
+        "name": "COMMONAPACHELOG",
+        "pattern": "%{IPORHOST:clientip} %{HTTPDUSER:ident} %{USER:auth} \\[%{HTTPDATE:timestamp;date;dd/MMM/yyyy:HH:mm:ss Z}\\] \"(?:%{WORD:verb} %{NOTSPACE:request}(?: HTTP/%{NUMBER:httpversion})?|%{DATA:rawrequest})\" %{NUMBER:response} (?:%{NUMBER:bytes}|-)"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "b9d5b120-2c63-47a3-bcce-9bd6bbc9bd71",
+      "data": {
+        "name": "TIMESTAMP_ISO8601",
+        "pattern": "%{YEAR}-%{MONTHNUM}-%{MONTHDAY}[T ]%{HOUR}:?%{MINUTE}(?::?%{SECOND})?%{ISO8601_TIMEZONE}?"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "642b589a-2890-48d7-bdf0-8ab68158c9cf",
+      "data": {
+        "name": "URI",
+        "pattern": "%{URIPROTO}://(?:%{USER}(?::[^@]*)?@)?(?:%{URIHOST})?(?:%{URIPATHPARAM})?"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "fd0b3f77-79b1-4a9e-82aa-f82f5d0e8fb0",
+      "data": {
+        "name": "ISO8601_TIMEZONE",
+        "pattern": "(?:Z|[+-]%{HOUR}(?::?%{MINUTE}))"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector_configuration",
+        "version": "1"
+      },
+      "id": "ddce3d43-c181-478f-b5a0-cecb603fcecd",
+      "data": {
+        "collector_id": {
+          "@type": "string",
+          "@value": "d1dfdf4d-dd95-4307-af05-e1cfc6064c88"
+        },
+        "title": {
+          "@type": "string",
+          "@value": "filebeat-linux-default"
+        },
+        "color": {
+          "@type": "string",
+          "@value": "#ffffff"
+        },
+        "template": {
+          "@type": "string",
+          "@value": "# Required settings\nfields_under_root: true\nfields.collector_node_id: ${sidecar.nodeName}\nfields.gl2_source_collector: ${sidecar.nodeId}\n\n\noutput.logstash:\n   hosts: [\"${user.graylog_host}:5044\"]\npath:\n   data: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/data\n   logs: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/log\n\nfilebeat.inputs:\n\n- type: filestream\n  id: snort-filestream\n  enabled: true\n  paths:\n    - /var/log/snort/alert_json.txt\n    - /var/log/snort/appid-output.json\n  parsers:\n    - ndjson:\n        target: \"snort3\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: snort3\n\n- type: filestream\n  id: zeek-filestream\n  enabled: true\n  paths:\n    - /opt/zeek/logs/current\n  parsers:\n    - ndjson:\n        target: \"zeek\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: zeek\n\n- type: filestream\n  id: apache-filestream\n  enabled: true\n  paths:\n  - /var/log/apache2/access.log\n  - /var/log/apache2/error.log\n  - /var/log/httpd/access_log\n  - /var/log/httpd/error_log\n  fields_under_root: true\n  fields:\n      event_source_product: apache_httpd\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "39a0038e-7411-4cfc-b240-09e8f0ff38c5",
+      "data": {
+        "name": "USER",
+        "pattern": "%{USERNAME}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "08cb23e7-77dc-4696-9d4c-7b80cce40420",
+      "data": {
+        "name": "HTTPD20_ERRORLOG",
+        "pattern": "\\[%{HTTPDERROR_DATE:timestamp}\\] \\[%{LOGLEVEL:loglevel}\\] (?:\\[client %{IPORHOST:clientip}\\] ){0,1}%{GREEDYDATA:errormsg}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "993f01e8-1a4e-4ef1-924f-b2f267f2c18f",
+      "data": {
+        "name": "IP",
+        "pattern": "(?:%{IPV6}|%{IPV4})"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "de32dafb-fc59-432d-8763-9ea40b7215c5",
+      "data": {
+        "name": "MONTHNUM2",
+        "pattern": "(?:0[1-9]|1[0-2])"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "cd498b83-e7ba-4aa7-8914-89e37ac1d3f7",
+      "data": {
+        "name": "WORD",
+        "pattern": "\\b\\w+\\b"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "1842f2eb-51fc-48d9-a5f9-f93a2aece509",
+      "data": {
+        "name": "SYSLOGHOST",
+        "pattern": "%{IPORHOST}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "c02948b3-7e5a-417c-8aad-de5558f27158",
+      "data": {
+        "name": "URIPATH",
+        "pattern": "(?:/[A-Za-z0-9$.+!*'(){},~:;=@#%_\\-]*)+"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "46b6bc8e-a3cc-4c12-9405-852576f50e33",
+      "data": {
+        "name": "HTTPDERROR_DATE",
+        "pattern": "%{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{YEAR}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "adb611f4-dc3b-46df-a903-9827b086c1f6",
+      "data": {
+        "name": "EMAILLOCALPART",
+        "pattern": "[a-zA-Z][a-zA-Z0-9_.+-=:]+"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector",
+        "version": "1"
+      },
+      "id": "9521215d-89f9-4d42-b70b-a4d3cd6b6b9a",
+      "data": {
+        "name": {
+          "@type": "string",
+          "@value": "winlogbeat"
+        },
+        "service_type": {
+          "@type": "string",
+          "@value": "svc"
+        },
+        "node_operating_system": {
+          "@type": "string",
+          "@value": "windows"
+        },
+        "executable_path": {
+          "@type": "string",
+          "@value": "C:\\Program Files\\Graylog\\sidecar\\winlogbeat.exe"
+        },
+        "execute_parameters": {
+          "@type": "string",
+          "@value": "-c \"%s\""
+        },
+        "validation_parameters": {
+          "@type": "string",
+          "@value": "test config -c \"%s\""
+        },
+        "default_template": {
+          "@type": "string",
+          "@value": "# Required settings\nfields_under_root: true\nfields.collector_node_id: ${sidecar.nodeName}\nfields.gl2_source_collector: ${sidecar.nodeId}\n\n\noutput.logstash:\n   hosts: [\"${user.graylog_host}:5044\"]\npath:\n  data: ${sidecar.spoolDir!\"C:\\\\Program Files\\\\Graylog\\\\sidecar\\\\cache\\\\winlogbeat\"}\\data\n  logs: ${sidecar.spoolDir!\"C:\\\\Program Files\\\\Graylog\\\\sidecar\"}\\logs\ntags:\n - windows\nwinlogbeat:\n  event_logs:\n   - name: Application\n     ignore_older: 96h\n   - name: System\n     ignore_older: 96h\n   - name: Security\n     ignore_older: 96h\n   - name: Setup\n     ignore_older: 96h\n   - name: ForwardedEvents\n     forwarded: true\n     ignore_older: 96h\n   - name: Microsoft-Windows-Windows Defender/Operational\n     ignore_older: 96h\n   - name: Microsoft-Windows-Sysmon/Operational\n     ignore_older: 96h\n   - name: Microsoft-Windows-TerminalServices-LocalSessionManager/Operational\n     ignore_older: 96h\n   - name: Microsoft-Windows-PowerShell/Operational\n     ignore_older: 96h\n   - name: windows PowerShell\n     ignore_older: 96h"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "400c6ec3-8c12-453b-ab0a-739fc0326c14",
+      "data": {
+        "name": "SYSLOGTIMESTAMP",
+        "pattern": "%{MONTH} +%{MONTHDAY} %{TIME}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "6b79c326-9f9c-40e6-a20e-7239692a3e2b",
+      "data": {
+        "name": "TTY",
+        "pattern": "(?:/dev/(pts|tty([pq])?)(\\w+)?/?(?:[0-9]+))"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "lookup_cache",
+        "version": "1"
+      },
+      "id": "bc3502ad-420e-42bc-94d0-4a54ca3f6a9a",
+      "data": {
+        "_scope": {
+          "@type": "string",
+          "@value": "DEFAULT"
+        },
+        "name": {
+          "@type": "string",
+          "@value": "abuseipdb"
+        },
+        "title": {
+          "@type": "string",
+          "@value": "AbuseIPDB"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "Lookup IP reputation from AbuseIPDB API"
+        },
+        "configuration": {
+          "type": {
+            "@type": "string",
+            "@value": "guava_cache"
+          },
+          "max_size": {
+            "@type": "integer",
+            "@value": 1000
+          },
+          "expire_after_access": {
+            "@type": "long",
+            "@value": 60
+          },
+          "expire_after_access_unit": {
+            "@type": "string",
+            "@value": "HOURS"
+          },
+          "expire_after_write": {
+            "@type": "long",
+            "@value": 0
+          },
+          "ignore_null": {
+            "@type": "boolean",
+            "@value": false
+          }
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "url_whitelist_entry",
+        "version": "1"
+      },
+      "id": "34319348-673d-424d-bf62-942177aaf90e",
+      "data": {
+        "id": "1c447045-63c2-4f1b-be82-859d5e301e50",
+        "type": "regex",
+        "title": "GreyNoise",
+        "value": "^\\Qhttps://api.greynoise.io/v3/community/\\E.*?$"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=3.1.3"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "ee0a4eae-5e15-4363-b1bf-eab8fb010181",
+      "data": {
+        "name": "WINPATH",
+        "pattern": "(?>[A-Za-z]+:|\\\\)(?:\\\\[^\\\\?*]*)+"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "1a9c36bf-b003-45aa-b1d4-ae3235ee3c81",
+      "data": {
+        "name": "MAC",
+        "pattern": "(?:%{CISCOMAC}|%{WINDOWSMAC}|%{COMMONMAC})"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "3e984b01-5bec-405a-a7a9-9aeafcf1e355",
+      "data": {
+        "name": "MONTH",
+        "pattern": "\\b(?:Jan(?:uary|uar)?|Feb(?:ruary|ruar)?|M(?:a|ä)?r(?:ch|z)?|Apr(?:il)?|Ma(?:y|i)?|Jun(?:e|i)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|O(?:c|k)?t(?:ober)?|Nov(?:ember)?|De(?:c|z)(?:ember)?)\\b"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector_configuration",
+        "version": "1"
+      },
+      "id": "3a318f7b-47e5-4be5-9c82-69fa93c70ebf",
+      "data": {
+        "collector_id": {
+          "@type": "string",
+          "@value": "4d1ecd39-5aa4-4fed-b90b-2f93b3d179f9"
+        },
+        "title": {
+          "@type": "string",
+          "@value": "auditbeat-linux-default"
+        },
+        "color": {
+          "@type": "string",
+          "@value": "#ffffff"
+        },
+        "template": {
+          "@type": "string",
+          "@value": "# Required settings\nfields_under_root: true\nfields.collector_node_id: ${sidecar.nodeName}\nfields.gl2_source_collector: ${sidecar.nodeId}\n\n\noutput.logstash:\n   hosts: [\"${user.graylog_host}:5044\"]\npath:\n   data: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/auditbeat\"}/data\n   logs: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/auditbeat\"}/log\nfields:\n  event_source_product: linux_auditbeat\n\n# You can find the full configuration reference here:\n# https://www.elastic.co/guide/en/beats/auditbeat/index.html\n\n# =========================== Modules configuration ============================\nauditbeat.modules:\n\n# The auditd module collects events from the audit framework in the Linux kernel.\n- module: auditd\n  resolve_ids: true\n  failure_mode: log\n  backlog_limit: 8196\n  rate_limit: 0\n  include_raw_message: true\n  include_warnings: true\n  backpressure_strategy: auto\n\n  audit_rules: |\n    ## Define audit rules here.\n    ## Create file watches (-w) or syscall audits (-a or -A).\n\n    ## If you are on a 64 bit platform, everything should be running\n    ## in 64 bit mode. This rule will detect any use of the 32 bit syscalls\n    ## because this might be a sign of someone exploiting a hole in the 32\n    ## bit API.\n    -a always,exit -F arch=b32 -S all -F key=32bit-abi\n\n    ## Executions.\n    -a always,exit -F arch=b64 -S execve,execveat -k exec\n\n    ## External access (warning: these can be expensive to audit).\n    -a always,exit -F arch=b64 -S accept,bind,connect -F key=external-access\n\n    ## Identity changes.\n    -w /etc/group -p wa -k identity\n    -w /etc/passwd -p wa -k identity\n    -w /etc/gshadow -p wa -k identity\n    -w /etc/shadow -p wa -k identity\n\n    ## Unauthorized access attempts.\n    -a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access\n    -a always,exit -F arch=b32 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access\n    -a always,exit -F arch=b64 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=4294967295 -F key=access\n    -a always,exit -F arch=b64 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=4294967295 -F key=access\n\n# The file integrity module sends events when files are changed (created, updated, deleted).\n# The events contain file metadata and hashes.\n- module: file_integrity\n  paths:\n  - /bin\n  - /usr/bin\n  - /sbin\n  - /usr/sbin\n  - /etc\n  - /etc/graylog/server\n  exclude_files:\n  - '(?i)\\.sw[nop]$'\n  - '~$'\n  - '/\\.git($|/)'\n  include_files: []\n  scan_at_start: true\n  scan_rate_per_sec: 50 MiB\n  max_file_size: 100 MiB\n  hash_types: [sha256]\n  recursive: false"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "6d792737-1726-4018-bacb-aac0928626f7",
+      "data": {
+        "name": "HOSTNAME",
+        "pattern": "\\b(?:[0-9A-Za-z][0-9A-Za-z-]{0,62})(?:\\.(?:[0-9A-Za-z][0-9A-Za-z-]{0,62}))*(\\.?|\\b)"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "input",
+        "version": "1"
+      },
+      "id": "86cb9100-faae-4a26-8e64-1c6f19d835cd",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "PfSense"
+        },
+        "configuration": {
+          "recv_buffer_size": {
+            "@type": "integer",
+            "@value": 262144
+          },
+          "port": {
+            "@type": "integer",
+            "@value": 5514
+          },
+          "number_worker_threads": {
+            "@type": "integer",
+            "@value": 4
+          },
+          "charset_name": {
+            "@type": "string",
+            "@value": "UTF-8"
+          },
+          "bind_address": {
+            "@type": "string",
+            "@value": "0.0.0.0"
+          }
+        },
+        "static_fields": {
+          "log_type": {
+            "@type": "string",
+            "@value": "pfsense"
+          }
+        },
+        "type": {
+          "@type": "string",
+          "@value": "org.graylog2.inputs.raw.udp.RawUDPInput"
+        },
+        "global": {
+          "@type": "boolean",
+          "@value": true
+        },
+        "extractors": [
+          {
+            "target_field": {
+              "@type": "string",
+              "@value": "FilterData"
+            },
+            "condition_value": {
+              "@type": "string",
+              "@value": "^.*filterlog\\[.....\\]:(.*),(in|out),4,.*,udp,.*$"
+            },
+            "order": {
+              "@type": "integer",
+              "@value": 0
+            },
+            "converters": [
+              {
+                "type": {
+                  "@type": "string",
+                  "@value": "CSV"
+                },
+                "configuration": {
+                  "trim_leading_whitespace": {
+                    "@type": "boolean",
+                    "@value": false
+                  },
+                  "column_header": {
+                    "@type": "string",
+                    "@value": "RuleNumber,SubRuleNumber,Anchor,Tracker,Interface,Reason,Action,Direction,IPVersion,TOS,ECN,TTL,ID,Offset,Flags,ProtocolID,Protocol,Length,SourceIP,DestIP,SourcePort,DestPort,DataLength"
+                  },
+                  "strict_quotes": {
+                    "@type": "boolean",
+                    "@value": false
+                  }
+                }
+              }
+            ],
+            "configuration": {
+              "regex_value": {
+                "@type": "string",
+                "@value": "^.*filterlog\\[.....\\]:(.*)$"
+              }
+            },
+            "source_field": {
+              "@type": "string",
+              "@value": "message"
+            },
+            "title": {
+              "@type": "string",
+              "@value": "pfSense filterlog: IPv4 UDP"
+            },
+            "type": {
+              "@type": "string",
+              "@value": "REGEX"
+            },
+            "cursor_strategy": {
+              "@type": "string",
+              "@value": "COPY"
+            },
+            "condition_type": {
+              "@type": "string",
+              "@value": "REGEX"
+            }
+          },
+          {
+            "target_field": {
+              "@type": "string",
+              "@value": "FilterData"
+            },
+            "condition_value": {
+              "@type": "string",
+              "@value": ",tcp,"
+            },
+            "order": {
+              "@type": "integer",
+              "@value": 0
+            },
+            "converters": [
+              {
+                "type": {
+                  "@type": "string",
+                  "@value": "CSV"
+                },
+                "configuration": {
+                  "trim_leading_whitespace": {
+                    "@type": "boolean",
+                    "@value": false
+                  },
+                  "column_header": {
+                    "@type": "string",
+                    "@value": "RuleNumber,SubRuleNumber,Anchor,Tracker,Interface,Reason,Action,Direction,IPVersion,TOS,ECN,TTL,ID,Offset,Flags,ProtocolID,Protocol,Length,SourceIP,DestIP,SourcePort,DestPort,DataLength,TCPFlags,Sequence,ACK,Window,URG,Options"
+                  },
+                  "strict_quotes": {
+                    "@type": "boolean",
+                    "@value": false
+                  }
+                }
+              }
+            ],
+            "configuration": {
+              "regex_value": {
+                "@type": "string",
+                "@value": "^.*filterlog\\[\\d+\\]: (.*)$"
+              }
+            },
+            "source_field": {
+              "@type": "string",
+              "@value": "message"
+            },
+            "title": {
+              "@type": "string",
+              "@value": "PFE: pfSense filterlog - IPv4 TCP"
+            },
+            "type": {
+              "@type": "string",
+              "@value": "REGEX"
+            },
+            "cursor_strategy": {
+              "@type": "string",
+              "@value": "COPY"
+            },
+            "condition_type": {
+              "@type": "string",
+              "@value": "STRING"
+            }
+          },
+          {
+            "target_field": {
+              "@type": "string",
+              "@value": "FilterData"
+            },
+            "condition_value": {
+              "@type": "string",
+              "@value": ",udp,"
+            },
+            "order": {
+              "@type": "integer",
+              "@value": 1
+            },
+            "converters": [
+              {
+                "type": {
+                  "@type": "string",
+                  "@value": "CSV"
+                },
+                "configuration": {
+                  "trim_leading_whitespace": {
+                    "@type": "boolean",
+                    "@value": false
+                  },
+                  "column_header": {
+                    "@type": "string",
+                    "@value": "RuleNumber,SubRuleNumber,Anchor,Tracker,Interface,Reason,Action,Direction,IPVersion,TOS,ECN,TTL,ID,Offset,Flags,ProtocolID,Protocol,Length,SourceIP,DestIP,SourcePort,DestPort,DataLength"
+                  },
+                  "strict_quotes": {
+                    "@type": "boolean",
+                    "@value": false
+                  }
+                }
+              }
+            ],
+            "configuration": {
+              "regex_value": {
+                "@type": "string",
+                "@value": "^.*filterlog\\[\\d+\\]: (.*)$"
+              }
+            },
+            "source_field": {
+              "@type": "string",
+              "@value": "message"
+            },
+            "title": {
+              "@type": "string",
+              "@value": "PFE: pfSense filterlog - IPv4 UDP"
+            },
+            "type": {
+              "@type": "string",
+              "@value": "REGEX"
+            },
+            "cursor_strategy": {
+              "@type": "string",
+              "@value": "COPY"
+            },
+            "condition_type": {
+              "@type": "string",
+              "@value": "STRING"
+            }
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "adeae6d2-5930-4895-aab2-f49effb57b30",
+      "data": {
+        "name": "EMAILADDRESS",
+        "pattern": "%{EMAILLOCALPART}@%{HOSTNAME}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "c7bea24a-69bb-4ecc-b82f-aa3e45aa78a0",
+      "data": {
+        "name": "URIPARAM",
+        "pattern": "\\?[A-Za-z0-9$.+!*'|(){},~@#%&/=:;_?\\-\\[\\]<>]*"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "9c45efaa-3815-43ac-8f11-0778af0392d7",
+      "data": {
+        "name": "BASE16NUM",
+        "pattern": "(?<![0-9A-Fa-f])(?:[+-]?(?:0x)?(?:[0-9A-Fa-f]+))"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector",
+        "version": "1"
+      },
+      "id": "d1dfdf4d-dd95-4307-af05-e1cfc6064c88",
+      "data": {
+        "name": {
+          "@type": "string",
+          "@value": "filebeat"
+        },
+        "service_type": {
+          "@type": "string",
+          "@value": "exec"
+        },
+        "node_operating_system": {
+          "@type": "string",
+          "@value": "linux"
+        },
+        "executable_path": {
+          "@type": "string",
+          "@value": "/usr/lib/graylog-sidecar/filebeat"
+        },
+        "execute_parameters": {
+          "@type": "string",
+          "@value": "-c  %s"
+        },
+        "validation_parameters": {
+          "@type": "string",
+          "@value": "test config -c %s"
+        },
+        "default_template": {
+          "@type": "string",
+          "@value": "# Required settings\nfields_under_root: true\nfields.collector_node_id: ${sidecar.nodeName}\nfields.gl2_source_collector: ${sidecar.nodeId}\n\n\noutput.logstash:\n   hosts: [\"${user.graylog_host}:5044\"]\npath:\n   data: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/data\n   logs: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/log\n\nfilebeat.inputs:\n\n- type: filestream\n  id: snort-filestream\n  enabled: true\n  paths:\n    - /var/log/snort/alert_json.txt\n    - /var/log/snort/appid-output.json\n  parsers:\n    - ndjson:\n        target: \"snort3\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: snort3\n\n- type: filestream\n  id: zeek-filestream\n  enabled: true\n  paths:\n    - /opt/zeek/logs/current\n  parsers:\n    - ndjson:\n        target: \"zeek\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: zeek\n\n- type: filestream\n  id: apache-filestream\n  enabled: true\n  paths:\n  - /var/log/apache2/access.log\n  - /var/log/apache2/error.log\n  - /var/log/httpd/access_log\n  - /var/log/httpd/error_log\n  fields_under_root: true\n  fields:\n      event_source_product: apache_httpd\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "8fcf8096-4653-424b-b38f-06b26d8de11f",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "AbuseIPDB Lookup on DestIP"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "AbuseIPDB Lookup on DestIP"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"AbuseIPDB Lookup on DestIP\"\nwhen\n    has_field(\"DestIP\")\nthen\n    // Perform lookup using the AbuseIPDB Lookup Table\n    let ldata = lookup(\n        lookup_table: \"abuseipdb\",\n        key: to_string($message.DestIP)\n    );\n    set_fields(\n        fields: ldata,\n        prefix: \"abuseipdb_\"\n    );\nend\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "fa9d7567-c3f3-4945-a5ab-4baaa72550e7",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "LINUX SYSMON EVENT 3 LOG NORMALIZATION"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "LINUX SYSMON EVENT 3 LOG NORMALIZATION"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"LINUX SYSMON EVENT 3 LOG NORMALIZATION\"\nwhen\n    $message.rule_group1 == \"linux\" AND $message.rule_group3 == \"sysmon_event3\"\nthen\n    set_field(\"process_image\", $message.data_eventdata_image);\n    set_field(\"process_id\", $message.data_eventdata_processId);\n    set_field(\"protocol\", $message.data_eventdata_protocol);\n    set_field(\"user_name\", $message.data_eventdata_user);\n    set_field(\"dst_ip\", $message.data_eventdata_DestinationIp);\n    set_field(\"dst_port\", $message.data_eventdata_destinationPort);\n    set_field(\"src_ip\", $message.data_eventdata_sourceIp);\n    set_field(\"src_port\", $message.data_eventdata_sourcePort);\nend"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "dashboard",
+        "version": "2"
+      },
+      "id": "a095eec5-dfce-4a26-8ff9-b416efcad45f",
+      "data": {
+        "summary": {
+          "@type": "string",
+          "@value": "This is a list of all sources that sent in messages to Graylog."
+        },
+        "search": {
+          "queries": [
+            {
+              "id": "a1647eb6-a064-4fe6-b459-1e4267d3f659",
+              "timerange": {
+                "range": 300,
+                "type": "relative"
+              },
+              "filters": [],
+              "query": {
+                "type": "elasticsearch",
+                "query_string": ""
+              },
+              "search_types": [
+                {
+                  "query": null,
+                  "name": "chart",
+                  "timerange": {
+                    "range": 300,
+                    "type": "relative"
+                  },
+                  "column_limit": null,
+                  "streams": [],
+                  "row_limit": null,
+                  "series": [
+                    {
+                      "type": "count",
+                      "id": "Message count",
+                      "field": null
+                    }
+                  ],
+                  "filter": null,
+                  "rollup": true,
+                  "row_groups": [
+                    {
+                      "type": "values",
+                      "fields": [
+                        "source"
+                      ],
+                      "limit": 15,
+                      "skip_empty_values": false
+                    }
+                  ],
+                  "type": "pivot",
+                  "stream_categories": [],
+                  "id": "5e9a9bfe-7a97-4835-86fd-896f40b20531",
+                  "filters": [],
+                  "column_groups": [],
+                  "sort": [
+                    {
+                      "type": "series",
+                      "field": "count()",
+                      "direction": "Descending"
+                    }
+                  ]
+                },
+                {
+                  "query": null,
+                  "name": "chart",
+                  "timerange": {
+                    "range": 300,
+                    "type": "relative"
+                  },
+                  "column_limit": null,
+                  "streams": [],
+                  "row_limit": null,
+                  "series": [
+                    {
+                      "type": "count",
+                      "id": "Message count",
+                      "field": null
+                    }
+                  ],
+                  "filter": null,
+                  "rollup": false,
+                  "row_groups": [
+                    {
+                      "type": "time",
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "interval": {
+                        "type": "auto",
+                        "scaling": 0.25
+                      }
+                    }
+                  ],
+                  "type": "pivot",
+                  "stream_categories": [],
+                  "id": "848773e8-20ec-4140-ae11-4d14fdec771e",
+                  "filters": [],
+                  "column_groups": [
+                    {
+                      "type": "values",
+                      "fields": [
+                        "streams"
+                      ],
+                      "limit": 15,
+                      "skip_empty_values": false
+                    }
+                  ],
+                  "sort": []
+                },
+                {
+                  "query": null,
+                  "name": "chart",
+                  "timerange": {
+                    "range": 300,
+                    "type": "relative"
+                  },
+                  "column_limit": null,
+                  "streams": [],
+                  "row_limit": null,
+                  "series": [
+                    {
+                      "type": "count",
+                      "id": "Message count",
+                      "field": null
+                    }
+                  ],
+                  "filter": null,
+                  "rollup": false,
+                  "row_groups": [
+                    {
+                      "type": "time",
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "interval": {
+                        "type": "auto",
+                        "scaling": 1
+                      }
+                    }
+                  ],
+                  "type": "pivot",
+                  "stream_categories": [],
+                  "id": "f1c5d593-3831-42e2-b8f8-5107abc380db",
+                  "filters": [],
+                  "column_groups": [
+                    {
+                      "type": "values",
+                      "fields": [
+                        "gl2_source_node"
+                      ],
+                      "limit": 15,
+                      "skip_empty_values": false
+                    }
+                  ],
+                  "sort": []
+                },
+                {
+                  "query": null,
+                  "name": "chart",
+                  "timerange": {
+                    "range": 300,
+                    "type": "relative"
+                  },
+                  "column_limit": null,
+                  "streams": [],
+                  "row_limit": null,
+                  "series": [
+                    {
+                      "type": "count",
+                      "id": "Message count",
+                      "field": null
+                    }
+                  ],
+                  "filter": null,
+                  "rollup": true,
+                  "row_groups": [
+                    {
+                      "type": "values",
+                      "fields": [
+                        "source"
+                      ],
+                      "limit": 10,
+                      "skip_empty_values": false
+                    }
+                  ],
+                  "type": "pivot",
+                  "stream_categories": [],
+                  "id": "22249f29-f042-4bd8-b745-252b00a35891",
+                  "filters": [],
+                  "column_groups": [],
+                  "sort": [
+                    {
+                      "type": "series",
+                      "field": "count()",
+                      "direction": "Descending"
+                    }
+                  ]
+                },
+                {
+                  "query": null,
+                  "name": "chart",
+                  "timerange": {
+                    "range": 300,
+                    "type": "relative"
+                  },
+                  "column_limit": null,
+                  "streams": [],
+                  "row_limit": null,
+                  "series": [
+                    {
+                      "type": "count",
+                      "id": "Message count",
+                      "field": null
+                    }
+                  ],
+                  "filter": null,
+                  "rollup": false,
+                  "row_groups": [
+                    {
+                      "type": "time",
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "interval": {
+                        "type": "auto",
+                        "scaling": 1
+                      }
+                    }
+                  ],
+                  "type": "pivot",
+                  "stream_categories": [],
+                  "id": "9333f7ef-11ad-4bd2-967f-29288e1d254b",
+                  "filters": [],
+                  "column_groups": [
+                    {
+                      "type": "values",
+                      "fields": [
+                        "gl2_source_input"
+                      ],
+                      "limit": 15,
+                      "skip_empty_values": false
+                    }
+                  ],
+                  "sort": []
+                }
+              ]
+            },
+            {
+              "id": "be9fdec2-0d46-4219-9860-b26ba839d2b4",
+              "timerange": {
+                "range": 300,
+                "type": "relative"
+              },
+              "filters": [],
+              "query": {
+                "type": "elasticsearch",
+                "query_string": ""
+              },
+              "search_types": [
+                {
+                  "query": null,
+                  "name": "chart",
+                  "timerange": {
+                    "range": 300,
+                    "type": "relative"
+                  },
+                  "column_limit": null,
+                  "streams": [],
+                  "row_limit": null,
+                  "series": [
+                    {
+                      "type": "sum",
+                      "id": "Message count",
+                      "field": "gl2_accounted_message_size"
+                    }
+                  ],
+                  "filter": null,
+                  "rollup": false,
+                  "row_groups": [
+                    {
+                      "type": "time",
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "interval": {
+                        "type": "auto",
+                        "scaling": 0.25
+                      }
+                    }
+                  ],
+                  "type": "pivot",
+                  "stream_categories": [],
+                  "id": "85e0eb88-577c-45c1-b91d-7edd165a05d5",
+                  "filters": [],
+                  "column_groups": [
+                    {
+                      "type": "values",
+                      "fields": [
+                        "streams"
+                      ],
+                      "limit": 15,
+                      "skip_empty_values": false
+                    }
+                  ],
+                  "sort": []
+                },
+                {
+                  "query": null,
+                  "name": "chart",
+                  "timerange": {
+                    "range": 300,
+                    "type": "relative"
+                  },
+                  "column_limit": null,
+                  "streams": [],
+                  "row_limit": null,
+                  "series": [
+                    {
+                      "type": "sum",
+                      "id": "Message count",
+                      "field": "gl2_accounted_message_size"
+                    }
+                  ],
+                  "filter": null,
+                  "rollup": false,
+                  "row_groups": [
+                    {
+                      "type": "time",
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "interval": {
+                        "type": "auto",
+                        "scaling": 1
+                      }
+                    }
+                  ],
+                  "type": "pivot",
+                  "stream_categories": [],
+                  "id": "4cab9d48-a864-420d-a08a-a59ddc5b0b34",
+                  "filters": [],
+                  "column_groups": [
+                    {
+                      "type": "values",
+                      "fields": [
+                        "gl2_source_input"
+                      ],
+                      "limit": 15,
+                      "skip_empty_values": false
+                    }
+                  ],
+                  "sort": []
+                },
+                {
+                  "query": null,
+                  "name": "chart",
+                  "timerange": {
+                    "range": 300,
+                    "type": "relative"
+                  },
+                  "column_limit": null,
+                  "streams": [],
+                  "row_limit": null,
+                  "series": [
+                    {
+                      "type": "count",
+                      "id": "Message count",
+                      "field": null
+                    }
+                  ],
+                  "filter": null,
+                  "rollup": true,
+                  "row_groups": [
+                    {
+                      "type": "values",
+                      "fields": [
+                        "source"
+                      ],
+                      "limit": 10,
+                      "skip_empty_values": false
+                    }
+                  ],
+                  "type": "pivot",
+                  "stream_categories": [],
+                  "id": "0892cc6a-0f4e-4886-8835-bc1adf1dc7e9",
+                  "filters": [],
+                  "column_groups": [],
+                  "sort": []
+                },
+                {
+                  "query": null,
+                  "name": "chart",
+                  "timerange": {
+                    "range": 300,
+                    "type": "relative"
+                  },
+                  "column_limit": null,
+                  "streams": [],
+                  "row_limit": null,
+                  "series": [
+                    {
+                      "type": "sum",
+                      "id": "Message count",
+                      "field": "gl2_accounted_message_size"
+                    }
+                  ],
+                  "filter": null,
+                  "rollup": false,
+                  "row_groups": [
+                    {
+                      "type": "time",
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "interval": {
+                        "type": "auto",
+                        "scaling": 1
+                      }
+                    }
+                  ],
+                  "type": "pivot",
+                  "stream_categories": [],
+                  "id": "9a0914fa-c83c-416c-8709-78d5e8cc9657",
+                  "filters": [],
+                  "column_groups": [
+                    {
+                      "type": "values",
+                      "fields": [
+                        "gl2_source_node"
+                      ],
+                      "limit": 15,
+                      "skip_empty_values": false
+                    }
+                  ],
+                  "sort": []
+                },
+                {
+                  "query": null,
+                  "name": "chart",
+                  "timerange": {
+                    "range": 300,
+                    "type": "relative"
+                  },
+                  "column_limit": null,
+                  "streams": [],
+                  "row_limit": null,
+                  "series": [
+                    {
+                      "type": "sum",
+                      "id": "Messages size",
+                      "field": "gl2_accounted_message_size"
+                    }
+                  ],
+                  "filter": null,
+                  "rollup": true,
+                  "row_groups": [
+                    {
+                      "type": "values",
+                      "fields": [
+                        "source"
+                      ],
+                      "limit": 15,
+                      "skip_empty_values": false
+                    }
+                  ],
+                  "type": "pivot",
+                  "stream_categories": [],
+                  "id": "4e285e1f-5675-4005-9634-0e9d4181dd08",
+                  "filters": [],
+                  "column_groups": [],
+                  "sort": []
+                }
+              ]
+            }
+          ],
+          "parameters": [],
+          "requires": {},
+          "owner": "admin",
+          "created_at": "2023-06-01T12:37:51.057Z"
+        },
+        "created_at": "2023-06-01T08:43:23.743Z",
+        "requires": {},
+        "state": {
+          "a1647eb6-a064-4fe6-b459-1e4267d3f659": {
+            "selected_fields": null,
+            "static_message_list_id": null,
+            "titles": {
+              "tab": {
+                "title": "Log Volume by Message Count"
+              },
+              "widget": {
+                "6c127c5d-be75-4157-b43f-ac0194ac0586": "Selected sources",
+                "92d63811-e4dd-47db-bd3b-db03c8a9bd53": "Messages per Source",
+                "00637e63-d728-4b3e-932b-7c8696b4855d": "Messages over time",
+                "8850cc37-1877-4963-a518-b33e21599ebd": "Messages over time by Streams",
+                "5de0575e-094c-4234-96b2-042fc4f069ec": "Messages over time by Inputs",
+                "219f666b-8a98-468f-b1db-5841c89827d3": "Messages over time by Nodes"
+              }
+            },
+            "widgets": [
+              {
+                "config": {
+                  "visualization": "bar",
+                  "units": {},
+                  "column_limit": 15,
+                  "event_annotation": false,
+                  "row_limit": null,
+                  "row_pivots": [
+                    {
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "type": "time",
+                      "config": {
+                        "interval": {
+                          "type": "auto",
+                          "scaling": 1
+                        }
+                      }
+                    }
+                  ],
+                  "series": [
+                    {
+                      "config": {
+                        "name": "Message count"
+                      },
+                      "function": "count()"
+                    }
+                  ],
+                  "rollup": false,
+                  "column_pivots": [
+                    {
+                      "fields": [
+                        "gl2_source_node"
+                      ],
+                      "type": "values",
+                      "config": {
+                        "limit": 15
+                      }
+                    }
+                  ],
+                  "visualization_config": {
+                    "barmode": "stack",
+                    "axis_type": "linear"
+                  },
+                  "formatting_settings": null,
+                  "sort": []
+                },
+                "query": null,
+                "timerange": {
+                  "range": 300,
+                  "type": "relative"
+                },
+                "streams": [],
+                "filter": null,
+                "type": "aggregation",
+                "stream_categories": [],
+                "id": "219f666b-8a98-468f-b1db-5841c89827d3",
+                "filters": []
+              },
+              {
+                "config": {
+                  "visualization": "pie",
+                  "units": {},
+                  "column_limit": null,
+                  "event_annotation": false,
+                  "row_limit": 10,
+                  "row_pivots": [
+                    {
+                      "fields": [
+                        "source"
+                      ],
+                      "type": "values",
+                      "config": {
+                        "limit": 10
+                      }
+                    }
+                  ],
+                  "series": [
+                    {
+                      "config": {
+                        "name": "Message count"
+                      },
+                      "function": "count()"
+                    }
+                  ],
+                  "rollup": true,
+                  "column_pivots": [],
+                  "visualization_config": null,
+                  "formatting_settings": null,
+                  "sort": [
+                    {
+                      "type": "series",
+                      "field": "count()",
+                      "direction": "Descending"
+                    }
+                  ]
+                },
+                "query": null,
+                "timerange": {
+                  "range": 300,
+                  "type": "relative"
+                },
+                "streams": [],
+                "filter": null,
+                "type": "aggregation",
+                "stream_categories": [],
+                "id": "92d63811-e4dd-47db-bd3b-db03c8a9bd53",
+                "filters": []
+              },
+              {
+                "config": {
+                  "visualization": "bar",
+                  "units": {},
+                  "column_limit": 15,
+                  "event_annotation": false,
+                  "row_limit": null,
+                  "row_pivots": [
+                    {
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "type": "time",
+                      "config": {
+                        "interval": {
+                          "type": "auto",
+                          "scaling": 0.25
+                        }
+                      }
+                    }
+                  ],
+                  "series": [
+                    {
+                      "config": {
+                        "name": "Message count"
+                      },
+                      "function": "count()"
+                    }
+                  ],
+                  "rollup": false,
+                  "column_pivots": [
+                    {
+                      "fields": [
+                        "streams"
+                      ],
+                      "type": "values",
+                      "config": {
+                        "limit": 15
+                      }
+                    }
+                  ],
+                  "visualization_config": {
+                    "barmode": "stack",
+                    "axis_type": "linear"
+                  },
+                  "formatting_settings": null,
+                  "sort": []
+                },
+                "query": null,
+                "timerange": {
+                  "range": 300,
+                  "type": "relative"
+                },
+                "streams": [],
+                "filter": null,
+                "type": "aggregation",
+                "stream_categories": [],
+                "id": "8850cc37-1877-4963-a518-b33e21599ebd",
+                "filters": []
+              },
+              {
+                "config": {
+                  "visualization": "bar",
+                  "units": {},
+                  "column_limit": 15,
+                  "event_annotation": false,
+                  "row_limit": null,
+                  "row_pivots": [
+                    {
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "type": "time",
+                      "config": {
+                        "interval": {
+                          "type": "auto",
+                          "scaling": 1
+                        }
+                      }
+                    }
+                  ],
+                  "series": [
+                    {
+                      "config": {
+                        "name": "Message count"
+                      },
+                      "function": "count()"
+                    }
+                  ],
+                  "rollup": false,
+                  "column_pivots": [
+                    {
+                      "fields": [
+                        "gl2_source_input"
+                      ],
+                      "type": "values",
+                      "config": {
+                        "limit": 15
+                      }
+                    }
+                  ],
+                  "visualization_config": {
+                    "barmode": "stack",
+                    "axis_type": "linear"
+                  },
+                  "formatting_settings": null,
+                  "sort": []
+                },
+                "query": null,
+                "timerange": {
+                  "range": 300,
+                  "type": "relative"
+                },
+                "streams": [],
+                "filter": null,
+                "type": "aggregation",
+                "stream_categories": [],
+                "id": "5de0575e-094c-4234-96b2-042fc4f069ec",
+                "filters": []
+              },
+              {
+                "config": {
+                  "visualization": "table",
+                  "units": {},
+                  "column_limit": null,
+                  "event_annotation": false,
+                  "row_limit": 15,
+                  "row_pivots": [
+                    {
+                      "fields": [
+                        "source"
+                      ],
+                      "type": "values",
+                      "config": {
+                        "limit": 15
+                      }
+                    }
+                  ],
+                  "series": [
+                    {
+                      "config": {
+                        "name": "Message count"
+                      },
+                      "function": "count()"
+                    }
+                  ],
+                  "rollup": true,
+                  "column_pivots": [],
+                  "visualization_config": null,
+                  "formatting_settings": null,
+                  "sort": [
+                    {
+                      "type": "series",
+                      "field": "count()",
+                      "direction": "Descending"
+                    }
+                  ]
+                },
+                "query": null,
+                "timerange": {
+                  "range": 300,
+                  "type": "relative"
+                },
+                "streams": [],
+                "filter": null,
+                "type": "aggregation",
+                "stream_categories": [],
+                "id": "6c127c5d-be75-4157-b43f-ac0194ac0586",
+                "filters": []
+              }
+            ],
+            "widget_mapping": {
+              "92d63811-e4dd-47db-bd3b-db03c8a9bd53": [
+                "22249f29-f042-4bd8-b745-252b00a35891"
+              ],
+              "8850cc37-1877-4963-a518-b33e21599ebd": [
+                "848773e8-20ec-4140-ae11-4d14fdec771e"
+              ],
+              "6c127c5d-be75-4157-b43f-ac0194ac0586": [
+                "5e9a9bfe-7a97-4835-86fd-896f40b20531"
+              ],
+              "5de0575e-094c-4234-96b2-042fc4f069ec": [
+                "9333f7ef-11ad-4bd2-967f-29288e1d254b"
+              ],
+              "219f666b-8a98-468f-b1db-5841c89827d3": [
+                "f1c5d593-3831-42e2-b8f8-5107abc380db"
+              ]
+            },
+            "positions": {
+              "92d63811-e4dd-47db-bd3b-db03c8a9bd53": {
+                "col": 7,
+                "row": 9,
+                "height": 4,
+                "width": 6
+              },
+              "6c127c5d-be75-4157-b43f-ac0194ac0586": {
+                "col": 1,
+                "row": 9,
+                "height": 4,
+                "width": 6
+              },
+              "8850cc37-1877-4963-a518-b33e21599ebd": {
+                "col": 1,
+                "row": 1,
+                "height": 4,
+                "width": "Infinity"
+              },
+              "5de0575e-094c-4234-96b2-042fc4f069ec": {
+                "col": 1,
+                "row": 5,
+                "height": 4,
+                "width": 6
+              },
+              "219f666b-8a98-468f-b1db-5841c89827d3": {
+                "col": 7,
+                "row": 5,
+                "height": 4,
+                "width": 6
+              }
+            },
+            "formatting": {
+              "highlighting": []
+            },
+            "display_mode_settings": {
+              "positions": {}
+            }
+          },
+          "be9fdec2-0d46-4219-9860-b26ba839d2b4": {
+            "selected_fields": null,
+            "static_message_list_id": null,
+            "titles": {
+              "tab": {
+                "title": "Log Volume by Message Size"
+              },
+              "widget": {
+                "2a5904f0-bffb-433c-9648-163cf925c878": "Selected sources",
+                "d3d3f4dc-ced0-46b0-b65d-981897c5d94b": "Messages per Source",
+                "undefined": "Messages over time",
+                "e3016dd4-6586-400c-a214-538a29d5a641": "Messages over time by Streams",
+                "7e6a1cb8-9aac-470d-9f74-19d274703b1d": "Messages over time by Inputs",
+                "2d7970aa-0e35-4ac0-ac35-2f357c82c877": "Messages over time by Nodes"
+              }
+            },
+            "widgets": [
+              {
+                "config": {
+                  "visualization": "bar",
+                  "units": {},
+                  "column_limit": 15,
+                  "event_annotation": false,
+                  "row_limit": null,
+                  "row_pivots": [
+                    {
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "type": "time",
+                      "config": {
+                        "interval": {
+                          "type": "auto",
+                          "scaling": 1
+                        }
+                      }
+                    }
+                  ],
+                  "series": [
+                    {
+                      "config": {
+                        "name": "Message count"
+                      },
+                      "function": "sum(gl2_accounted_message_size)"
+                    }
+                  ],
+                  "rollup": false,
+                  "column_pivots": [
+                    {
+                      "fields": [
+                        "gl2_source_node"
+                      ],
+                      "type": "values",
+                      "config": {
+                        "limit": 15
+                      }
+                    }
+                  ],
+                  "visualization_config": {
+                    "barmode": "stack",
+                    "axis_type": "linear"
+                  },
+                  "formatting_settings": null,
+                  "sort": []
+                },
+                "query": null,
+                "timerange": {
+                  "range": 300,
+                  "type": "relative"
+                },
+                "streams": [],
+                "filter": null,
+                "type": "aggregation",
+                "stream_categories": [],
+                "id": "2d7970aa-0e35-4ac0-ac35-2f357c82c877",
+                "filters": []
+              },
+              {
+                "config": {
+                  "visualization": "table",
+                  "units": {},
+                  "column_limit": null,
+                  "event_annotation": false,
+                  "row_limit": 15,
+                  "row_pivots": [
+                    {
+                      "fields": [
+                        "source"
+                      ],
+                      "type": "values",
+                      "config": {
+                        "limit": 15
+                      }
+                    }
+                  ],
+                  "series": [
+                    {
+                      "config": {
+                        "name": "Messages size"
+                      },
+                      "function": "sum(gl2_accounted_message_size)"
+                    }
+                  ],
+                  "rollup": true,
+                  "column_pivots": [],
+                  "visualization_config": {
+                    "pinned_columns": []
+                  },
+                  "formatting_settings": null,
+                  "sort": []
+                },
+                "query": null,
+                "timerange": {
+                  "range": 300,
+                  "type": "relative"
+                },
+                "streams": [],
+                "filter": null,
+                "type": "aggregation",
+                "stream_categories": [],
+                "id": "2a5904f0-bffb-433c-9648-163cf925c878",
+                "filters": []
+              },
+              {
+                "config": {
+                  "visualization": "pie",
+                  "units": {},
+                  "column_limit": null,
+                  "event_annotation": false,
+                  "row_limit": 10,
+                  "row_pivots": [
+                    {
+                      "fields": [
+                        "source"
+                      ],
+                      "type": "values",
+                      "config": {
+                        "limit": 10
+                      }
+                    }
+                  ],
+                  "series": [
+                    {
+                      "config": {
+                        "name": "Message count"
+                      },
+                      "function": "count()"
+                    }
+                  ],
+                  "rollup": true,
+                  "column_pivots": [],
+                  "visualization_config": null,
+                  "formatting_settings": null,
+                  "sort": []
+                },
+                "query": null,
+                "timerange": {
+                  "range": 300,
+                  "type": "relative"
+                },
+                "streams": [],
+                "filter": null,
+                "type": "aggregation",
+                "stream_categories": [],
+                "id": "d3d3f4dc-ced0-46b0-b65d-981897c5d94b",
+                "filters": []
+              },
+              {
+                "config": {
+                  "visualization": "bar",
+                  "units": {},
+                  "column_limit": 15,
+                  "event_annotation": false,
+                  "row_limit": null,
+                  "row_pivots": [
+                    {
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "type": "time",
+                      "config": {
+                        "interval": {
+                          "type": "auto",
+                          "scaling": 0.25
+                        }
+                      }
+                    }
+                  ],
+                  "series": [
+                    {
+                      "config": {
+                        "name": "Message count"
+                      },
+                      "function": "sum(gl2_accounted_message_size)"
+                    }
+                  ],
+                  "rollup": false,
+                  "column_pivots": [
+                    {
+                      "fields": [
+                        "streams"
+                      ],
+                      "type": "values",
+                      "config": {
+                        "limit": 15
+                      }
+                    }
+                  ],
+                  "visualization_config": {
+                    "barmode": "stack",
+                    "axis_type": "linear"
+                  },
+                  "formatting_settings": null,
+                  "sort": []
+                },
+                "query": null,
+                "timerange": {
+                  "range": 300,
+                  "type": "relative"
+                },
+                "streams": [],
+                "filter": null,
+                "type": "aggregation",
+                "stream_categories": [],
+                "id": "e3016dd4-6586-400c-a214-538a29d5a641",
+                "filters": []
+              },
+              {
+                "config": {
+                  "visualization": "bar",
+                  "units": {},
+                  "column_limit": 15,
+                  "event_annotation": false,
+                  "row_limit": null,
+                  "row_pivots": [
+                    {
+                      "fields": [
+                        "timestamp"
+                      ],
+                      "type": "time",
+                      "config": {
+                        "interval": {
+                          "type": "auto",
+                          "scaling": 1
+                        }
+                      }
+                    }
+                  ],
+                  "series": [
+                    {
+                      "config": {
+                        "name": "Message count"
+                      },
+                      "function": "sum(gl2_accounted_message_size)"
+                    }
+                  ],
+                  "rollup": false,
+                  "column_pivots": [
+                    {
+                      "fields": [
+                        "gl2_source_input"
+                      ],
+                      "type": "values",
+                      "config": {
+                        "limit": 15
+                      }
+                    }
+                  ],
+                  "visualization_config": {
+                    "barmode": "stack",
+                    "axis_type": "linear"
+                  },
+                  "formatting_settings": null,
+                  "sort": []
+                },
+                "query": null,
+                "timerange": {
+                  "range": 300,
+                  "type": "relative"
+                },
+                "streams": [],
+                "filter": null,
+                "type": "aggregation",
+                "stream_categories": [],
+                "id": "7e6a1cb8-9aac-470d-9f74-19d274703b1d",
+                "filters": []
+              }
+            ],
+            "widget_mapping": {
+              "d3d3f4dc-ced0-46b0-b65d-981897c5d94b": [
+                "0892cc6a-0f4e-4886-8835-bc1adf1dc7e9"
+              ],
+              "e3016dd4-6586-400c-a214-538a29d5a641": [
+                "85e0eb88-577c-45c1-b91d-7edd165a05d5"
+              ],
+              "2a5904f0-bffb-433c-9648-163cf925c878": [
+                "4e285e1f-5675-4005-9634-0e9d4181dd08"
+              ],
+              "7e6a1cb8-9aac-470d-9f74-19d274703b1d": [
+                "4cab9d48-a864-420d-a08a-a59ddc5b0b34"
+              ],
+              "2d7970aa-0e35-4ac0-ac35-2f357c82c877": [
+                "9a0914fa-c83c-416c-8709-78d5e8cc9657"
+              ]
+            },
+            "positions": {
+              "d3d3f4dc-ced0-46b0-b65d-981897c5d94b": {
+                "col": 7,
+                "row": 9,
+                "height": 4,
+                "width": 6
+              },
+              "2a5904f0-bffb-433c-9648-163cf925c878": {
+                "col": 1,
+                "row": 9,
+                "height": 4,
+                "width": 6
+              },
+              "e3016dd4-6586-400c-a214-538a29d5a641": {
+                "col": 1,
+                "row": 1,
+                "height": 4,
+                "width": "Infinity"
+              },
+              "7e6a1cb8-9aac-470d-9f74-19d274703b1d": {
+                "col": 1,
+                "row": 5,
+                "height": 4,
+                "width": 6
+              },
+              "2d7970aa-0e35-4ac0-ac35-2f357c82c877": {
+                "col": 7,
+                "row": 5,
+                "height": 4,
+                "width": 6
+              }
+            },
+            "formatting": {
+              "highlighting": []
+            },
+            "display_mode_settings": {
+              "positions": {}
+            }
+          }
+        },
+        "properties": [],
+        "owner": "admin",
+        "title": {
+          "@type": "string",
+          "@value": "Sources"
+        },
+        "type": "DASHBOARD",
+        "description": {
+          "@type": "string",
+          "@value": "This is a list of all sources that sent in messages to Graylog. You can narrow the timerange by zooming in on the message histogram, or you can increase the time range by specifying a broader one in the controls at the top. You can also specify filters to limit the results you are seeing. You can also add additional widgets to this dashboard, or adapt the appearance of existing widgets to suit your needs."
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "lookup_table",
+        "version": "1"
+      },
+      "id": "bb75dc38-daa6-4dd8-a3ed-90c6288c16c9",
+      "data": {
+        "default_single_value_type": {
+          "@type": "string",
+          "@value": "NULL"
+        },
+        "cache_name": {
+          "@type": "string",
+          "@value": "bc3502ad-420e-42bc-94d0-4a54ca3f6a9a"
+        },
+        "name": {
+          "@type": "string",
+          "@value": "abuseipdb"
+        },
+        "default_multi_value_type": {
+          "@type": "string",
+          "@value": "NULL"
+        },
+        "default_multi_value": {
+          "@type": "string",
+          "@value": ""
+        },
+        "data_adapter_name": {
+          "@type": "string",
+          "@value": "5fc16149-95f4-45c5-957a-66d12e0de198"
+        },
+        "_scope": {
+          "@type": "string",
+          "@value": "DEFAULT"
+        },
+        "title": {
+          "@type": "string",
+          "@value": "AbuseIPDB"
+        },
+        "default_single_value": {
+          "@type": "string",
+          "@value": ""
+        },
+        "description": {
+          "@type": "string",
+          "@value": "Lookup IP reputation from AbuseIPDB API"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "5bbb772b-fd33-48ed-8593-64776dbe352f",
+      "data": {
+        "name": "URIHOST",
+        "pattern": "%{IPORHOST}(?::%{POSINT:port})?"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline_rule",
+        "version": "1"
+      },
+      "id": "e298d6a6-5681-46bf-9bf7-50ce02ef238b",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "drop predecoder_timestamp"
+        },
+        "description": {
+          "@type": "string",
+          "@value": ""
+        },
+        "source": {
+          "@type": "string",
+          "@value": "rule \"drop predecoder_timestamp\"\nwhen\n  has_field(\"predecoder_timestamp\")\nthen\n  remove_field(\"predecoder_timestamp\");\nend\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "870fee84-ac79-4964-a490-12a55bc7bfbd",
+      "data": {
+        "name": "TIME",
+        "pattern": "(?!<[0-9])%{HOUR}:%{MINUTE}(?::%{SECOND})(?![0-9])"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "ccf91a15-6e7f-4368-b78d-0efec15cfe65",
+      "data": {
+        "name": "COMMONMAC",
+        "pattern": "(?:(?:[A-Fa-f0-9]{2}:){5}[A-Fa-f0-9]{2})"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "0b9ad03f-9414-4a79-acdf-b01fff0b00ba",
+      "data": {
+        "name": "NUMBER",
+        "pattern": "(?:%{BASE10NUM})"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "sidecar_collector_configuration",
+        "version": "1"
+      },
+      "id": "11232fba-a081-4884-9e69-63c16820177f",
+      "data": {
+        "collector_id": {
+          "@type": "string",
+          "@value": "17133e02-22e8-4cc3-b6f3-da79335bebec"
+        },
+        "title": {
+          "@type": "string",
+          "@value": "filebeat-freebsd-default"
+        },
+        "color": {
+          "@type": "string",
+          "@value": "#ffffff"
+        },
+        "template": {
+          "@type": "string",
+          "@value": "# Required settings\nfields_under_root: true\nfields.collector_node_id: ${sidecar.nodeName}\nfields.gl2_source_collector: ${sidecar.nodeId}\n\n\noutput.logstash:\n   hosts: [\"${user.graylog_host}:5044\"]\npath:\n   data: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/data\n   logs: ${sidecar.spoolDir!\"/var/lib/graylog-sidecar/collectors/filebeat\"}/log\n\nfilebeat.inputs:\n\n- type: filestream\n  id: snort-filestream\n  enabled: true\n  paths:\n    - /var/log/snort/alert_json.txt\n    - /var/log/snort/appid-output.json\n  parsers:\n    - ndjson:\n        target: \"snort3\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: snort3\n\n- type: filestream\n  id: zeek-filestream\n  enabled: true\n  paths:\n    - /opt/zeek/logs/current\n  parsers:\n    - ndjson:\n        target: \"zeek\"\n        add_error_key: true\n        overwrite_keys: true\n  fields:\n    event_source_product: zeek\n\n- type: filestream\n  id: apache-filestream\n  enabled: true\n  paths:\n  - /var/log/httpd-access.log\n  - /var/log/httpd-error.log\n  fields_under_root: true\n  fields:\n      event_source_product: apache_httpd\n"
+        }
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "pipeline",
+        "version": "1"
+      },
+      "id": "6d9fc9fc-5043-4df3-a4e3-99b14aefad9f",
+      "data": {
+        "title": {
+          "@type": "string",
+          "@value": "AbuseIPDB"
+        },
+        "description": {
+          "@type": "string",
+          "@value": "Lookup IP reputation from AbuseIPDB API"
+        },
+        "source": {
+          "@type": "string",
+          "@value": "pipeline \"AbuseIPDB\"\nstage 0 match either\nrule \"AbuseIPDB Lookup on DestIP\"\nend"
+        },
+        "connected_streams": [
+          {
+            "@type": "string",
+            "@value": "1115454b-c91c-4086-acf8-14563d1d1671"
+          }
+        ]
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "19defa52-de74-4690-ae4f-f76cad5dd987",
+      "data": {
+        "name": "DATESTAMP_EVENTLOG",
+        "pattern": "%{YEAR}%{MONTHNUM2}%{MONTHDAY}%{HOUR}%{MINUTE}%{SECOND}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "470d6d52-178f-4494-acd5-0ab9810239d6",
+      "data": {
+        "name": "HTTPDATE",
+        "pattern": "%{MONTHDAY}/%{MONTH}/%{YEAR}:%{TIME} %{INT}"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "58e2de65-29e7-43b6-95e7-813227fa6123",
+      "data": {
+        "name": "LOGLEVEL",
+        "pattern": "([Aa]lert|ALERT|[Tt]race|TRACE|[Dd]ebug|DEBUG|[Nn]otice|NOTICE|[Ii]nfo|INFO|[Ww]arn?(?:ing)?|WARN?(?:ING)?|[Ee]rr?(?:or)?|ERR?(?:OR)?|[Cc]rit?(?:ical)?|CRIT?(?:ICAL)?|[Ff]atal|FATAL|[Ss]evere|SEVERE|EMERG(?:ENCY)?|[Ee]merg(?:ency)?)"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "84718dac-1c28-449c-a6b7-4563ea0b492d",
+      "data": {
+        "name": "ISO8601_SECOND",
+        "pattern": "(?:%{SECOND}|60)"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    },
+    {
+      "v": "1",
+      "type": {
+        "name": "grok_pattern",
+        "version": "1"
+      },
+      "id": "980fd41f-70ca-4184-8403-23670cfe2569",
+      "data": {
+        "name": "WINDOWSMAC",
+        "pattern": "(?:(?:[A-Fa-f0-9]{2}-){5}[A-Fa-f0-9]{2})"
+      },
+      "constraints": [
+        {
+          "type": "server-version",
+          "version": ">=6.3.2+667aca0"
+        }
+      ]
+    }
+  ]
+}

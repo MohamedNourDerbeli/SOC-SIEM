@@ -157,6 +157,7 @@ else
   warn "Custom graylog-server binary not found at $CUSTOM_BIN; skipping override"
 fi
 
+
 # --------------- 9) Start Graylog ---------------
 log "Enabling and starting graylog-server"
 sudo systemctl daemon-reload
@@ -165,7 +166,98 @@ sudo systemctl enable --now graylog-server || warn "graylog-server failed to sta
 echo
 echo "=============================================================="
 echo " Graylog and MongoDB installation finished"
-echo " - Graylog URL: http://<this-host>:9000"
-echo " - Index backend: https://${WAZUH_INDEXER_IP}:9200 (auth: graylog/<generated>)"
+echo " - Graylog URL: http://${GRAYLOG_SERVER_IP}:9000"
+echo " - Index backend: https://${WAZUH_INDEXER_IP}:9200 (auth: graylog/${GRAYLOG_INDEXER_PASSWORD})"
 echo " - Root user: admin (password set via ROOT_PASSWORD_SHA2 from .env)"
 echo "=============================================================="
+
+
+# --------------- 10) Install Graylog content packs (optional) ---------------
+install_graylog_content_packs() {
+  # Ensure needed tools
+  require_cmd curl
+  if ! command -v jq >/dev/null 2>&1; then
+    warn "jq not found; installing jq"
+    sudo apt-get update -y && sudo apt-get install -y jq || die "Failed to install jq"
+  fi
+
+  # Required vars
+  [[ -n "${GRAYLOG_SERVER_IP:-}" ]] || die "GRAYLOG_SERVER_IP not set in .env"
+  [[ -n "${GRAYLOG_PASSWORD:-}" ]] || die "GRAYLOG_PASSWORD not set in .env"
+
+  local API_URL="http://${GRAYLOG_SERVER_IP}:9000/api"
+  local ADMIN_USER="${GRAYLOG_ADMIN_USER:-admin}"
+  local ADMIN_PASS="${GRAYLOG_PASSWORD}"
+
+  # Wait for Graylog API
+  log "Waiting for Graylog API to be ready at ${API_URL}"
+  local attempt=0
+  local max_attempts=10
+  until curl -fsS -u "${ADMIN_USER}:${ADMIN_PASS}" \
+           -H "X-Requested-By: script" \
+           "${API_URL}/system/cluster/nodes" >/dev/null 2>&1; do
+    attempt=$((attempt + 1))
+    if (( attempt >= max_attempts )); then
+      warn "Graylog API not ready after $((10*max_attempts))s; skipping content pack install"
+      return 1
+    fi
+    echo "    Graylog API is not ready yet. Retrying in 10 seconds..."
+    sleep 10
+  done
+  echo "[+] Graylog API is up!"
+
+  # Locate content packs directory
+  local PACKS_DIR="$SCRIPT_DIR/content_packs"
+  if [[ ! -d "$PACKS_DIR" ]]; then
+    warn "No content_packs/ directory found at $PACKS_DIR; nothing to install"
+    return 0
+  fi
+
+  shopt -s nullglob
+  local files=("$PACKS_DIR"/*.json)
+  if (( ${#files[@]} == 0 )); then
+    warn "No JSON content packs found in $PACKS_DIR; nothing to install"
+    return 0
+  fi
+
+  for pack in "${files[@]}"; do
+    log "Uploading Graylog content pack: $(basename "$pack")"
+    # Upload content pack
+    local upload_resp
+    if ! upload_resp=$(curl -sS -u "${ADMIN_USER}:${ADMIN_PASS}" -X POST \
+      -H "Content-Type: application/json" \
+      -H "X-Requested-By: script" \
+      -d @"$pack" \
+      "${API_URL}/system/content_packs"); then
+      warn "Failed to upload content pack $(basename "$pack")"
+      continue
+    fi
+
+    local id
+    id=$(echo "$upload_resp" | jq -r '.id // empty')
+    if [[ -z "$id" ]]; then
+      warn "Could not parse content pack ID from upload response: $upload_resp"
+      continue
+    fi
+    echo "    Content pack uploaded with ID: $id"
+
+    # Install content pack (revision 1 by default)
+    local rev=1
+    if curl -sS -u "${ADMIN_USER}:${ADMIN_PASS}" -X POST \
+         -H "X-Requested-By: script" \
+         "${API_URL}/system/content_packs/${id}/${rev}/installations" >/dev/null; then
+      echo "[+] Installed content pack ${id} (rev ${rev})"
+    else
+      warn "Failed to install content pack ${id} (rev ${rev})"
+    fi
+  done
+}
+
+log "Do you want to install SOC-SIEM Graylog content packs from content_packs/? (y/n)"
+read -r answer
+if [[ "$answer" =~ ^[Yy]$ ]]; then
+  install_graylog_content_packs || warn "Some content packs may not have installed"
+else
+  log "Skipping content pack installation as per user choice"
+fi
+    
