@@ -5,7 +5,7 @@ This repository contains a complete, automated deployment of a powerful, open-so
 This project goes beyond a simple installation, creating a resilient, scalable, and feature-rich security monitoring platform suitable for a home lab, small business, or as a comprehensive portfolio piece showcasing advanced automation skills.
 
 *You can add your primary architecture diagram here.*
-`![Architecture Diagram](./architecture/SIEM-STACK.png)`
+`![Architecture Diagram](/architecture/SIEM-STACK.png)`
 
 ---
 
