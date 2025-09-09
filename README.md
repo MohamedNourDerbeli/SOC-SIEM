@@ -1,69 +1,79 @@
-# Advanced Open-Source SIEM & SOC Automation Project
+# SOC-SIEM (Automated Open-Source SOC/SIEM Stack)
 
-This repository contains a complete, automated deployment of a powerful, open-source Security Information and Event Management (SIEM) stack. The entire infrastructure is built from the ground up and managed as code, demonstrating a professional approach to modern security operations and DevOps (DevSecOps).
+A fully automated, production-style open-source SIEM stack using Wazuh, Graylog, OpenSearch, Fluent Bit, and Grafana. Everything is Infrastructure-as-Code with a single orchestrator.
 
-This project goes beyond a simple installation, creating a resilient, scalable, and feature-rich security monitoring platform suitable for a home lab, small business, or as a comprehensive portfolio piece showcasing advanced automation skills.
+![Architecture](architecture/SIEM-STACK.png)
 
-![Architecture Diagram](architecture/SIEM-STACK.png)
+## Stack overview
+- Wazuh Manager, Dashboard, and Indexer (OpenSearch)
+- Graylog + MongoDB
+- Fluent Bit shipper (Wazuh alerts -> Graylog)
+- Grafana (TLS-only) with OpenSearch datasource and dashboards
 
----
+## Quick start
+1) Prereqs: Ubuntu/Debian or RHEL/CentOS, sudo, Internet access, DNS for hosts.
+2) Edit `.env` at repo root and set required variables (IPs, hostnames, passwords).
+3) Optional: generate certs bundle
+    - `bash commponents/config/generate_certs.sh`
+4) Install all components
+    - `bash ./install.sh`
 
-## The Vision: What Problem This Project Solves
+Service URLs (defaults)
+- Wazuh Dashboard: https://<WAZUH_DASHBOARD_IP>:443
+- Graylog: http://<GRAYLOG_SERVER_IP>:9000
+- Grafana: https://<GRAFANA_DASHBOARD_HOSTNAME>:3000
 
-In today's threat landscape, effective security monitoring is essential. However, commercial SIEM solutions can be prohibitively expensive, and default open-source installations are often not configured for optimal performance, security, or real-world threat detection.
+## Component docs
+- Grafana: commponents/grafana/README.md
+- Graylog: commponents/graylog/README.md
+- Wazuh Indexer: commponents/wauzh/wazuh-indexer/README.md
+- Wazuh Dashboard: commponents/wauzh/wazuh-dashboard/README.md
+- Wazuh Manager: commponents/wauzh/wazuh-manager/README.md
+- Fluent Bit: commponents/fluent-bit/README.md
+- Certs/Config: commponents/config/README.md
 
-This project solves that problem by providing a **fully automated blueprint** for deploying a production-grade, open-source Security Operations Center (SOC) infrastructure. It addresses several key challenges:
+## Project structure
+```
+commponents/
+  grafana/           # Installer, TLS config, provisioning
+  graylog/           # Installer, server.conf, content_packs/
+  fluent-bit/        # Installer + fluent-bit.conf template
+  wauzh/
+     wazuh-indexer/   # OpenSearch installer, security init
+     wazuh-dashboard/ # TLS config + dashboards config
+     wazuh-manager/   # Manager config (ossec.conf, agent shared configs)
+architecture/        # Diagrams (PNG)
+dashboards/          # Screenshots and JSON
+rules/               # local_rules.xml and SOCFortress runner
+docs/                # Extra docs
+install.sh           # Orchestrated end-to-end installer
+.env                 # Central configuration (not committed)
+```
 
-*   **Complexity:** It automates the complex installation and integration of multiple best-in-class security tools (Wazuh, Graylog, etc.) into a single, cohesive system.
-*   **Configuration as Code:** It eliminates manual setup. Every aspect of the configuration—from the Wazuh manager's rules to Graylog's parsing pipelines—is version-controlled in this repository, ensuring consistency and repeatability.
-*   **Security Hardening:** The deployment is not just about installation; it includes creating dedicated service users, managing credentials securely via a central `.env` file, and implementing best practices for inter-component communication.
-*   **Enhanced Detection:** The system is pre-loaded with advanced detection rules from trusted sources like SOCFortress, immediately elevating its capabilities beyond the default ruleset.
+## Highlights
+- Orchestrated install with `install.sh` (certs -> indexer -> dashboard -> manager -> graylog -> fluent-bit -> grafana)
+- Configuration templating via envsubst; single `.env` as source of truth
+- TLS by default for Grafana; shared cert bundle for all components
+- OpenSearch security: role/user/mapping for Grafana (user `grafna`)
+- Optional Graylog content pack installation
 
----
+## Screenshots
 
-## Core Components & Architecture
+Architecture
 
-The SIEM is built on a foundation of powerful and widely respected open-source tools, each with a specific role. The architecture is designed for modularity and scalability.
+![SIEM Stack](architecture/SIEM-STACK.png)
 
-*   **Wazuh:** The core of our endpoint security. It acts as the XDR (Extended Detection and Response) platform, providing host-based intrusion detection (HIDS), file integrity monitoring (FIM), vulnerability detection, and security configuration assessment (SCA).
-*   **Graylog:** A centralized log management and analysis platform. It ingests, parses, and enriches logs from a wide variety of sources (like firewalls), not just Wazuh alerts. This provides a single pane of glass for all system and network events.
-*   **Wazuh Indexer (OpenSearch):** The high-performance, distributed search and analytics engine that serves as the central data store for both Wazuh and Graylog.
-*   **MongoDB:** The configuration database for the Graylog server.
-*   **Fluent Bit:** A lightweight, high-performance log shipper. In our decoupled architecture, it is responsible for reliably forwarding Wazuh alerts to the Graylog input, enhancing resilience.
+Dashboards
 
-### Data Flow
+![Wazuh Agent](dashboards/Wazuh-Agent.png)
+![Graylog Sysmon](dashboards/Graylog-Sysmon_event3.jpeg)
+![Grafana Logs](dashboards/Grafana-Logs.png)
 
-1.  **Wazuh Agents** collect security data from endpoints and send it to the **Wazuh Manager**.
-2.  The **Wazuh Manager** analyzes the data, generates alerts, and writes them to a local `alerts.json` file.
-3.  **Fluent Bit** tails this JSON file and forwards the alerts to a dedicated input on the **Graylog** server.
-4.  **Graylog** processes, normalizes, and enriches these logs using custom pipelines and stores them in the **Wazuh Indexer**.
-5.  Analysts can then use the **Wazuh Dashboard** to visualize XDR data and the **Graylog UI** to analyze all ingested logs from a single, unified data store.
+## Troubleshooting
+- Check services: `systemctl status <service>` (wazuh-indexer, wazuh-manager, wazuh-dashboard, graylog-server, grafana-server, fluent-bit)
+- Logs: `journalctl -u <service> -n 200 --no-pager`
+- Certificates: ensure `commponents/config/wazuh-certificates.tar` exists and contains host certs (e.g., `<host>.pem` and `<host>-key.pem`)
 
----
-
-## Key Features & Professional Practices
-
-This project isn't just a collection of tools; it's a demonstration of professional deployment and management techniques.
-
-*   **Fully Automated Deployment:** The entire stack is designed to be deployed from scratch using a master script, driven by a central `.env` configuration file.
-*   **Configuration Templating:** All major configuration files (`ossec.conf`, `server.conf`, etc.) are managed as clean `template` files, separating logic from configuration data. This is a core principle of Infrastructure as Code.
-*   **Centralized & Secure Credential Management:** No default passwords are used. All passwords, IP addresses, and API keys are defined in the central **`.env`** file. This file is pre-populated with secure, randomly generated defaults and is intended to be edited by the user before deployment. **Crucially, it is ignored by Git to prevent secrets from ever being committed.**
-*   **Dedicated Service Accounts:** Following the Principle of Least Privilege, dedicated users (e.g., `graylog`) are created with the minimum necessary permissions for inter-service communication.
-*   **Advanced Rule Management:** The system includes not only custom-written rules but also integrates the SOCFortress ruleset for enhanced threat detection, all managed within the repository.
-*   **Configuration as Code for Graylog:** Uses Graylog Content Packs to automatically deploy inputs, streams, and pipelines, ensuring the application layer is also configured as code.
-
----
-
-## Project Structure
-
-The repository is organized by component, making it modular and easy to navigate.
-
-*   `├── components/`: Contains the installation logic, configuration templates, and rules for each major tool.
-    *   `├── graylog/`: Scripts and templates for the Graylog server.
-    *   `├── wazuh/`: Scripts, templates, and rules for the Wazuh Manager, Indexer, and Dashboard.
-    *   `├── fluentbit/`: (WIP) Configuration for the log shipper.
-*   `├── config/`: Centralized configuration artifacts, such as the master certificate bundle.
-*   `├── .env`: **The master configuration file for the project.** The user must review and fill out this file before running any installation scripts. It contains all passwords, IP addresses, and other variables needed for the deployment.
-*   `└── .gitignore`: Ensures that sensitive files (like the user-modified `.env`) and generated files (like `merged.mg`) are never committed to the repository.
-
-This structure allows for clear separation of concerns and makes the project scalable for adding new components in the future.
+## Notes
+- The repo intentionally uses a central `.env` for all installers. Keep it private.
+- Component-specific requirements and variables are documented in each subfolder README.
