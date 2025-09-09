@@ -71,12 +71,12 @@ KEY_FILE="/etc/ssl/private/${NODE_NAME}.key"
 sudo mkdir -p /etc/ssl/certs /etc/ssl/private
 
 if [[ -f "$CONFIG_TAR" ]]; then
-    # Check if certs for NODE_NAME exist inside the tar
-    if tar -tf "$CONFIG_TAR" | grep -q "./${NODE_NAME}\.pem" && \
-         tar -tf "$CONFIG_TAR" | grep -q "./${NODE_NAME}-key\.pem"; then
+    # Check if certs for NODE_NAME exist inside the tar (entries are top-level filenames)
+    if tar -tf "$CONFIG_TAR" | grep -qx "${NODE_NAME}\.pem" && \
+         tar -tf "$CONFIG_TAR" | grep -qx "${NODE_NAME}-key\.pem"; then
         log "Extracting TLS certs for $NODE_NAME from bundle"
-        sudo tar -xf "$CONFIG_TAR" -C /etc/ssl/certs "./${NODE_NAME}.pem"
-        sudo tar -xf "$CONFIG_TAR" -C /etc/ssl/private "./${NODE_NAME}-key.pem"
+        sudo tar -xf "$CONFIG_TAR" -C /etc/ssl/certs "${NODE_NAME}.pem"
+        sudo tar -xf "$CONFIG_TAR" -C /etc/ssl/private "${NODE_NAME}-key.pem"
         sudo chmod 644 "$CERT_FILE" || true
         sudo chmod 600 "$KEY_FILE" || true
     else
