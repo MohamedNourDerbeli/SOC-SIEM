@@ -5,6 +5,9 @@ A fully automated, production-style open-source SIEM stack using Wazuh, Graylog,
 ![Architecture](architecture/SIEM-STACK.png)
 
 ## Stack overview
+
+<img width="3840" height="242" alt="data-flow _ Mermaid Chart-2025-09-09-122154" src="https://github.com/user-attachments/assets/ec7def8d-8299-4257-93d4-6fb23c6c1484" />
+
 - Wazuh Manager, Dashboard, and Indexer (OpenSearch)
 - Graylog + MongoDB
 - Fluent Bit shipper (Wazuh alerts -> Graylog)
@@ -62,6 +65,8 @@ install.sh           # Orchestrated end-to-end installer
 Architecture
 
 ![SIEM Stack](architecture/SIEM-STACK.png)
+![PfSense](architecture/PfSense.png)
+![MISP](architecture/MISP.png)
 
 Dashboards
 
