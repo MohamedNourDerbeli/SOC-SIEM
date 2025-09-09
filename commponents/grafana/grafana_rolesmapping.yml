@@ -1,0 +1,7 @@
+grafana_role:
+  reserved: false
+  hidden: false
+  users:
+    - "grafna"
+  backend_roles: []
+  hosts: []

@@ -1,0 +1,6 @@
+grafna:
+	hash: ${GRAFANA_INDEXER_HASH}
+	reserved: false
+	backend_roles: []
+	attributes: {}
+	description: "Grafana service user"

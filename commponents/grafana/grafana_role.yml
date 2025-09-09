@@ -1,0 +1,14 @@
+grafana_role:
+  reserved: false
+  hidden: false
+  cluster_permissions:
+    - "cluster_monitor"
+    - "cluster:admin/opensearch/ppl"
+
+  index_permissions:
+    - index_patterns:
+        - "*"
+      allowed_actions:
+        - "indices:admin/mappings/get"
+        - "read"
+        - "indices:monitor/settings/get"
