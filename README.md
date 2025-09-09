@@ -13,7 +13,7 @@ A fully automated, production-style open-source SIEM stack using Wazuh, Graylog,
 ## Quick start
 1) Prereqs: Ubuntu/Debian or RHEL/CentOS, sudo, Internet access, DNS for hosts.
 2) Edit `.env` at repo root and set required variables (IPs, hostnames, passwords).
-3) Optional: generate certs bundle
+3) Required: generate certs bundle
     - `bash commponents/config/generate_certs.sh`
 4) Install all components
     - `bash ./install.sh`
