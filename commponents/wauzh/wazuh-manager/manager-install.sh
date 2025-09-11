@@ -99,6 +99,20 @@ if [[ -d "$SCRIPT_DIR/agent_configs/Windows" ]]; then
     sudo cp -r "$SCRIPT_DIR/agent_configs/Windows" "$DEST_SHARED_DIR/"
 fi
 
+# Create / update custom CDB list (if provided)
+log "Installing CDB list: common-ports"
+CDB_DIR="/var/ossec/etc/lists"
+SRC_LIST="${SCRIPT_DIR}/agent_configs/common-ports"
+DEST_LIST="${CDB_DIR}/common-ports"
+
+sudo mkdir -p "$CDB_DIR"
+if [[ -f "$SRC_LIST" ]]; then
+    # Use install for atomic copy + ownership + mode
+    sudo install -o root -g wazuh -m 640 "$SRC_LIST" "$DEST_LIST"
+else
+    warn "CDB source list not found: $SRC_LIST (skipping)"
+fi
+
 log "Starting Wazuh Manager service..."
 sudo systemctl daemon-reload
 sudo systemctl enable --now wazuh-manager
