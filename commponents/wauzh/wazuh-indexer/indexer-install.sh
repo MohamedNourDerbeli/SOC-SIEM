@@ -106,9 +106,9 @@ SECADMIN_SH="$SEC_TOOL/securityadmin.sh"
 require_cmd "$HASH_SH" || true
 require_cmd "$SECADMIN_SH" || true
 
-ADMIN_HASH=$("$HASH_SH" -p "${WAZUH_INDEXER_PASSWORD}" | tail -n 1)
-KIBANA_HASH=$("$HASH_SH" -p "${WAZUH_KIBANASERVER_PASSWORD}" | tail -n 1)
-GRAYLOG_HASH=$("$HASH_SH" -p "${GRAYLOG_PASSWORD}" | tail -n 1)
+export ADMIN_HASH=$("$HASH_SH" -p "${WAZUH_INDEXER_PASSWORD}" | tail -n 1)
+export KIBANA_HASH=$("$HASH_SH" -p "${WAZUH_KIBANASERVER_PASSWORD}" | tail -n 1)
+export GRAYLOG_HASH=$("$HASH_SH" -p "${GRAYLOG_PASSWORD}" | tail -n 1)
 
 INT_USERS_TMPL="$SCRIPT_DIR/internal_users.yml"
 INT_USERS_GEN="/tmp/internal_users_update.yml"
