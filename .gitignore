@@ -1,3 +1,5 @@
 generated_config.yml
 wazuh-certificates*
 test
+iris-web
+misp-docker
