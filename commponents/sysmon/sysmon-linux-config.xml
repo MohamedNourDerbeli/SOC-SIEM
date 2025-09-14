@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Sysmon schemaversion="4.81">
+  <!--
+    Sysmon for Linux Configuration
+    Purpose: High-fidelity telemetry for SOC-SIEM stack (Wazuh / Graylog / OpenSearch / Grafana)
+    Strategy:
+      1. Start broad on critical object classes (process, network, file creation, file delete, module load, pipe, DNS if supported).
+      2. Prune noise with explicit Excludes (package managers, routine system daemons, temp/cache paths, container runtime chaff).
+      3. Keep tuning blocks grouped so future adjustments are localized.
+    Notes:
+      - Some Windows-only tags ignored automatically by Sysmon for Linux.
+      - HashAlgorithms kept to SHA256 only for performance (others optional).
+      - Adjust paths for distributions if needed (systemd vs upstart differences minimal here).
+      - Container detection heuristics: exclude known container ephemeral paths.
+  -->
+
+  <HashAlgorithms>sha256</HashAlgorithms>
+  <!-- ArchiveDirectory removed (not implemented on Linux) -->
+  <!-- CheckRevocation removed (not implemented on Linux) -->
+
+  <EventFiltering>
+
+    <!-- 1. Process Create (Event ID 1) -->
+    <ProcessCreate onmatch="include">
+      <!-- Core suspicious process execution surfaces -->
+      <Image condition="contains">/tmp/</Image>
+      <Image condition="contains">/dev/shm/</Image>
+      <Image condition="contains">/var/tmp/</Image>
+  <Image condition="end with">.py</Image>
+  <Image condition="end with">.pl</Image>
+  <Image condition="end with">.sh</Image>
+  <Image condition="end with">.php</Image>
+  <Image condition="end with">.wsf</Image>
+      <CommandLine condition="contains">curl</CommandLine>
+      <CommandLine condition="contains">wget</CommandLine>
+      <CommandLine condition="contains">base64</CommandLine>
+      <CommandLine condition="contains">/bin/bash -c</CommandLine>
+      <CommandLine condition="contains">powershell</CommandLine>
+      <CommandLine condition="contains">nc </CommandLine>
+      <ParentImage condition="contains">/dev/shm/</ParentImage>
+      <ParentImage condition="contains">/tmp/</ParentImage>
+      <ParentImage condition="contains">/var/tmp/</ParentImage>
+    </ProcessCreate>
+    <ProcessCreate onmatch="exclude">
+      <!-- High-volume benign processes to drop -->
+      <Image>/usr/bin/systemd</Image>
+      <Image>/usr/lib/systemd/systemd</Image>
+      <Image>/usr/sbin/cron</Image>
+      <Image>/usr/sbin/rsyslogd</Image>
+      <Image>/usr/sbin/sshd</Image>
+      <Image>/usr/sbin/vmtoolsd</Image>
+      <Image>/usr/bin/dbus-daemon</Image>
+      <Image>/usr/bin/NetworkManager</Image>
+      <Image>/usr/bin/containerd</Image>
+      <Image>/usr/bin/dockerd</Image>
+      <Image>/usr/bin/kubelet</Image>
+      <Image>/usr/bin/kube-apiserver</Image>
+      <Image>/usr/bin/kube-scheduler</Image>
+      <Image>/usr/bin/kube-controller-manager</Image>
+      <Image>/usr/bin/kube-proxy</Image>
+      <Image>/usr/bin/containerd-shim</Image>
+      <Image>/usr/bin/containerd-shim-runc-v2</Image>
+      <CommandLine condition="contains">apt-get install</CommandLine>
+      <CommandLine condition="contains">apt-get update</CommandLine>
+      <CommandLine condition="contains">apt upgrade</CommandLine>
+      <CommandLine condition="contains">yum install</CommandLine>
+      <CommandLine condition="contains">dnf install</CommandLine>
+      <CommandLine condition="contains">dnf update</CommandLine>
+    </ProcessCreate>
+
+    <!-- 2. Process Terminate (Event ID 5) - collect only for suspicious temp locations -->
+    <ProcessTerminate onmatch="include">
+      <Image condition="contains">/tmp/</Image>
+      <Image condition="contains">/dev/shm/</Image>
+      <Image condition="contains">/var/tmp/</Image>
+    </ProcessTerminate>
+
+    <!-- 3. Network Connections (Event ID 3) -->
+    <NetworkConnect onmatch="include">
+      <!-- Outbound to non-local ranges; Sysmon for Linux logs actual dest, no filtering by default -->
+      <Image condition="contains">/tmp/</Image>
+      <Image condition="contains">/dev/shm/</Image>
+      <Image condition="contains">/var/tmp/</Image>
+      <Image>/usr/bin/curl</Image>
+      <Image>/usr/bin/wget</Image>
+      <Image>/bin/bash</Image>
+      <Image>/usr/bin/python</Image>
+      <Image>/usr/bin/python3</Image>
+      <Image>/usr/bin/nc</Image>
+      <Image>/usr/bin/openssl</Image>
+    </NetworkConnect>
+    <NetworkConnect onmatch="exclude">
+      <Image>/usr/bin/systemd-resolved</Image>
+      <Image>/usr/sbin/sshd</Image>
+      <Image>/usr/bin/dockerd</Image>
+      <Image>/usr/bin/containerd</Image>
+      <Image>/usr/bin/containerd-shim</Image>
+      <Image>/usr/bin/containerd-shim-runc-v2</Image>
+      <Image>/usr/bin/kubelet</Image>
+      <Image>/usr/sbin/rsyslogd</Image>
+      <Image>/usr/sbin/chronyd</Image>
+      <Image>/usr/sbin/ntpd</Image>
+    </NetworkConnect>
+
+    <!-- 4. File Create (Event ID 11) - focus on exec & script capable paths -->
+    <FileCreate onmatch="include">
+      <TargetFilename condition="contains">/tmp/</TargetFilename>
+      <TargetFilename condition="contains">/dev/shm/</TargetFilename>
+      <TargetFilename condition="contains">/var/tmp/</TargetFilename>
+  <TargetFilename condition="end with">.sh</TargetFilename>
+  <TargetFilename condition="end with">.py</TargetFilename>
+  <TargetFilename condition="end with">.pl</TargetFilename>
+  <TargetFilename condition="end with">.php</TargetFilename>
+  <TargetFilename condition="end with">.so</TargetFilename>
+  <TargetFilename condition="end with">.jar</TargetFilename>
+  <TargetFilename condition="end with">.elf</TargetFilename>
+    </FileCreate>
+    <FileCreate onmatch="exclude">
+      <TargetFilename condition="contains">/var/lib/apt/</TargetFilename>
+      <TargetFilename condition="contains">/var/cache/apt/</TargetFilename>
+      <TargetFilename condition="contains">/var/lib/dpkg/</TargetFilename>
+      <TargetFilename condition="contains">/usr/lib/locale/</TargetFilename>
+      <TargetFilename condition="contains">/var/lib/systemd/</TargetFilename>
+    </FileCreate>
+
+    <!-- 5. File Create Stream Hash (Event ID 15) - limited Linux value; skip to reduce noise -->
+    <FileCreateStreamHash onmatch="exclude">
+      <RuleName condition="contains">*</RuleName>
+    </FileCreateStreamHash>
+
+    <!-- 6. File Delete (Event ID 23) - monitor temp + suspicious patterns -->
+    <FileDelete onmatch="include">
+      <TargetFilename condition="contains">/tmp/</TargetFilename>
+      <TargetFilename condition="contains">/dev/shm/</TargetFilename>
+      <TargetFilename condition="contains">/var/tmp/</TargetFilename>
+      <!-- Extension-based includes removed to reduce container layer churn noise -->
+    </FileDelete>
+    <FileDelete onmatch="exclude">
+      <!-- Container runtime high-churn deletions (layers, overlay, sandbox) -->
+      <Image>/usr/bin/containerd</Image>
+      <Image>/usr/bin/containerd-shim</Image>
+      <Image>/usr/bin/containerd-shim-runc-v2</Image>
+      <Image>/usr/bin/dockerd</Image>
+      <TargetFilename condition="contains">/var/lib/containerd/</TargetFilename>
+      <TargetFilename condition="contains">/var/lib/docker/</TargetFilename>
+      <TargetFilename condition="contains">/run/containerd/</TargetFilename>
+      <TargetFilename condition="contains">/run/docker/</TargetFilename>
+      <TargetFilename condition="contains">/run/containers/</TargetFilename>
+      <TargetFilename condition="contains">/var/run/containerd/</TargetFilename>
+      <TargetFilename condition="contains">/var/run/docker/</TargetFilename>
+      <!-- Overlay2 / OCI cache layers -->
+      <TargetFilename condition="contains">/var/lib/docker/overlay2/</TargetFilename>
+      <TargetFilename condition="contains">/var/lib/docker/containers/</TargetFilename>
+      <TargetFilename condition="contains">/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/</TargetFilename>
+      <TargetFilename condition="contains">/var/lib/containerd/io.containerd.content.v1.content/</TargetFilename>
+      <!-- Ephemeral tmp artifacts created by container runtimes / runc -->
+      <TargetFilename condition="contains">/tmp/containerd</TargetFilename>
+      <TargetFilename condition="contains">/tmp/ctr</TargetFilename>
+      <TargetFilename condition="contains">/tmp/runc</TargetFilename>
+      <TargetFilename condition="contains">/tmp/oci-</TargetFilename>
+    </FileDelete>
+
+    <!-- 7. Module Load (Event ID 7) - capture non-standard locations -->
+    <ImageLoad onmatch="include">
+      <ImageLoaded condition="contains">/tmp/</ImageLoaded>
+      <ImageLoaded condition="contains">/dev/shm/</ImageLoaded>
+      <ImageLoaded condition="contains">/var/tmp/</ImageLoaded>
+  <ImageLoaded condition="end with">.so</ImageLoaded>
+    </ImageLoad>
+    <ImageLoad onmatch="exclude">
+      <ImageLoaded condition="contains">/lib/modules/</ImageLoaded>
+      <ImageLoaded condition="contains">/usr/lib/</ImageLoaded>
+      <ImageLoaded condition="contains">/lib/x86_64-linux-gnu/</ImageLoaded>
+    </ImageLoad>
+
+    <!-- 8. Pipe Events (Event ID 17/18) - capture custom pipes often used for staging -->
+    <PipeEvent onmatch="include">
+      <PipeName condition="contains">/tmp/</PipeName>
+  <PipeName condition="end with">.sock</PipeName>
+    </PipeEvent>
+
+    <!-- 9. DNS (Event ID 22) - include suspicious process origins -->
+    <DnsQuery onmatch="include">
+      <Image condition="contains">/tmp/</Image>
+      <Image condition="contains">/dev/shm/</Image>
+      <Image condition="contains">/var/tmp/</Image>
+      <Image>/usr/bin/curl</Image>
+      <Image>/usr/bin/wget</Image>
+      <Image>/bin/bash</Image>
+      <Image>/usr/bin/python</Image>
+      <Image>/usr/bin/python3</Image>
+      <Image>/usr/bin/nc</Image>
+    </DnsQuery>
+
+    <!-- 10. Process Access (Event ID 10) - sensitive, focus on credential dumping patterns -->
+    <ProcessAccess onmatch="include">
+      <SourceImage condition="contains">/tmp/</SourceImage>
+      <SourceImage condition="contains">/dev/shm/</SourceImage>
+      <SourceImage condition="contains">/var/tmp/</SourceImage>
+      <TargetImage condition="contains">/usr/bin/sshd</TargetImage>
+      <TargetImage condition="contains">/usr/sbin/sshd</TargetImage>
+    </ProcessAccess>
+
+    <!-- 11. Shell Variant Tracking (Event ID 1 + commandline) already covered by ProcessCreate includes -->
+
+    <!-- 12. Ensure we do NOT blanket include everything else to control volume -->
+
+  </EventFiltering>
+</Sysmon>
