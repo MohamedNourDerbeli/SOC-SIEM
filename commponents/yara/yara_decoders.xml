@@ -1,34 +1,13 @@
-<!-- SPDX-License-Identifier: GPL-2.0-or-later -->
-<!-- YARA Active Response Decoders -->
+<!--
+    SPDX-License-Identifier: GPL-2.0-or-later
+-->
 
-<decoder name="yara_base">
+<decoder name="yara">
   <prematch>wazuh-yara:</prematch>
 </decoder>
 
-<!-- Match line produced as: wazuh-yara: MATCH rule=<rule> file=<path> -->
-<decoder name="yara_match">
-  <parent>yara_base</parent>
-  <regex>wazuh-yara: MATCH rule=([^ ]+) file=(.+)</regex>
-  <order>yara_rule,yara_scanned_file</order>
-</decoder>
-
-<!-- No match line: wazuh-yara: NOMATCH file=<path> -->
-<decoder name="yara_nomatch">
-  <parent>yara_base</parent>
-  <regex>wazuh-yara: NOMATCH file=(.+)</regex>
-  <order>yara_scanned_file</order>
-</decoder>
-
-<!-- Quarantine line: wazuh-yara: QUARANTINE src=<orig> dst=<quarantine> -->
-<decoder name="yara_quarantine">
-  <parent>yara_base</parent>
-  <regex>wazuh-yara: QUARANTINE src=(.+) dst=(.+)</regex>
-  <order>yara_src_file,yara_quarantine_file</order>
-</decoder>
-
-<!-- Error line: wazuh-yara: ERROR msg="..." -->
-<decoder name="yara_error">
-  <parent>yara_base</parent>
-  <regex>wazuh-yara: ERROR msg="(.+)"</regex>
-  <order>yara_error_msg</order>
+<decoder name="yara_decoder1">
+  <parent>yara</parent>
+  <regex>wazuh-yara: (\S+) - Scan result: (\S+) [description\p\p(\.*)"\.*] (\S+)</regex>
+  <order>log_type, yara_rule, yara_description, yara_scanned_file</order>
 </decoder>
